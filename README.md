@@ -3,8 +3,7 @@
 Collect file and line-range mentions (`@path`, `@path#L1-5`) into a single
 mention buffer and interleave free-text instructions for pasting into a
 coding agent such as Claude Code. One mention buffer per project (keyed by
-cwd), persisted across sessions as a plain file: open it and take its
-content from there.
+cwd), persisted across sessions as a plain file: open it and yank.
 
 ## Requirements
 
@@ -27,16 +26,13 @@ require('mention').setup({
   -- Module mappings. Use `''` (empty string) to disable one.
   mappings = {
     -- Append a mention for the current file (Normal) or the selected line
-    -- range (Visual) to the end of the mention buffer. You stay where you are.
+    -- range (Visual) to the end of the mention buffer.
     append = '',
 
-    -- Open the mention buffer in a centered float, or close it if open. It
-    -- also closes on the close key or when focus leaves it; edit it like any
-    -- buffer.
+    -- Open the mention buffer in a centered float, or close it if open.
     toggle = '',
 
-    -- Close the float (buffer-local in the mention buffer;
-    -- the default `q` sacrifices macro recording there)
+    -- Close the float (buffer-local)
     close = 'q',
   },
 
@@ -57,8 +53,12 @@ For example:
 ```lua
 require('mention').setup({
   mappings = {
-    append = '<leader>a',
-    toggle = '<leader>A',
+    append = '<leader>y',
+    toggle = '<leader>m',
+    close = '<Esc>'
+  },
+  window = {
+    border = 'single'
   },
 })
 ```
