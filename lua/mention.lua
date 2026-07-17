@@ -174,12 +174,17 @@ H.ensure_collection_buf = function()
   local group = vim.api.nvim_create_augroup('Mention', {})
   -- Autosave makes swap files redundant (and their recovery prompts ugly).
   -- Re-apply on enter/read: entering a `bufadd()`ed buffer for the first
-  -- time re-initializes its buffer-local options (Neovim 0.13).
-  local swapoff = function() vim.bo[buf_id].swapfile = false end
-  swapoff()
+  -- time re-initializes its buffer-local options (Neovim 0.13), losing the
+  -- detected filetype without re-running detection. Guard the restore so
+  -- ftplugin/syntax don't re-source on every enter.
+  local reinit = function()
+    vim.bo[buf_id].swapfile = false
+    if vim.bo[buf_id].filetype ~= 'markdown' then vim.bo[buf_id].filetype = 'markdown' end
+  end
+  reinit()
   vim.api.nvim_create_autocmd(
     { 'BufEnter', 'BufReadPost' },
-    { group = group, buffer = buf_id, callback = swapoff, desc = 'Keep mention collection swapless' }
+    { group = group, buffer = buf_id, callback = reinit, desc = 'Restore mention collection buffer-local options' }
   )
 
   -- The one built-in key: buffer-local `q` closes the float (sacrifices
