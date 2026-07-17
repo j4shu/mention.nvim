@@ -158,8 +158,8 @@ where `<cwd>` is the working directory at first use, encoded like
 'undofile' names. Later |:cd| does not move the collection within the
 session; each project directory gets its own collection across sessions.
 
-The buffer autosaves (on text change, leaving Insert mode, leaving the
-buffer, and quitting Neovim) and keeps 'swapfile' off. |Mention.clear()|
+The buffer autosaves (on leaving the buffer and on quitting Neovim) and
+keeps 'swapfile' off. |Mention.clear()|
 empties the file but never deletes it.
 
  vim:tw=78:ts=8:noet:ft=help:norl:

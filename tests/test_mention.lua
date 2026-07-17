@@ -205,20 +205,20 @@ T['append()']['persists the collection across sessions'] = function()
   eq(vim.fn.readfile(state_files()[1]), { mention, '', mention, '' })
 end
 
-T['append()']['autosaves edits made in the collection buffer'] = function()
+T['append()']['saves collection edits on leaving its buffer'] = function()
   edit_test_file()
   child.lua('Mention.append()')
   local state_file = state_files()[1]
 
   child.cmd('edit ' .. child.fn.fnameescape(state_file))
   eq(child.api.nvim_get_option_value('swapfile', { buf = 0 }), false)
-  -- Interleave free text; InsertLeave triggers the autosave
+  -- Interleave free text; edits stay in the buffer until a boundary
   child.type_keys('Go', 'do the thing', '<Esc>')
-  eq(vim.fn.readfile(state_file)[3], 'do the thing')
-
-  -- Normal-mode edit; TextChanged triggers the autosave
-  child.type_keys('dd')
   eq(vim.fn.readfile(state_file)[3], nil)
+
+  -- Leaving the buffer triggers the save
+  child.cmd('buffer #')
+  eq(vim.fn.readfile(state_file)[3], 'do the thing')
 end
 
 T['toggle()'] = new_set({ hooks = { pre_case = setup_sandbox } })
@@ -395,7 +395,10 @@ T['full flow']['append, toggle, edit free text, copy, clear'] = function()
   child.lua('Mention.toggle()')
   child.type_keys('i', 'refactor this', '<Esc>')
   local mention = '@' .. child.fn.fnamemodify(path, ':p:~')
+  -- Float edits reach disk on leaving the float; close and reopen
+  child.lua('Mention.toggle()')
   eq(vim.fn.readfile(state_files()[1]), { mention, 'refactor this' })
+  child.lua('Mention.toggle()')
 
   child.lua('Mention.copy()')
   eq(child.lua_get('_G.clip.lines'), { mention, 'refactor this', '' })
