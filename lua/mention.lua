@@ -1,8 +1,8 @@
 --- *mention.nvim* Collect file mentions for pasting into Claude
 ---
 --- Append file/line-range mentions (`@path`, `@path#L1-5`) to a single
---- collection buffer, interleave free-text instructions, and copy the whole
---- collection to the system clipboard.
+--- collection buffer and interleave free-text instructions. The collection
+--- persists as a plain file, ready to open and use directly.
 ---
 --- Setup with `require('mention').setup({})` (replace `{}` with your config).
 
@@ -52,31 +52,6 @@ Mention.toggle = function()
   H.float_open()
 end
 
---- Copy the entire collection to the system clipboard
----
---- Puts the collection verbatim into the `+` register (linewise). Leaves the
---- collection window untouched.
-Mention.copy = function()
-  local buf_id = H.ensure_collection_buf()
-  local lines = vim.api.nvim_buf_get_lines(buf_id, 0, -1, true)
-  vim.fn.setreg('+', lines, 'l')
-  H.notify(('copied collection (%d lines)'):format(#lines), 'INFO')
-end
-
---- Clear the collection
----
---- Empties the collection buffer after confirmation (defaults to No) and
---- persists the empty state. Never deletes the buffer or its file; the
---- collection window stays open if open.
-Mention.clear = function()
-  if vim.fn.confirm('Clear mention collection?', '&Yes\n&No', 2) ~= 1 then return end
-
-  local buf_id = H.ensure_collection_buf()
-  vim.api.nvim_buf_set_lines(buf_id, 0, -1, true, {})
-  H.collection_save(buf_id)
-  H.notify('collection cleared', 'INFO')
-end
-
 --- Module config
 ---
 --- Default values:
@@ -88,12 +63,6 @@ Mention.config = {
 
     -- Toggle the collection window
     toggle = '',
-
-    -- Copy entire collection to system clipboard
-    copy = '',
-
-    -- Clear the collection (asks for confirmation)
-    clear = '',
   },
 
   -- Collection window geometry (fractions of the editor size)
@@ -123,8 +92,6 @@ H.setup_config = function(config)
   H.check_type('mappings', config.mappings, 'table')
   H.check_type('mappings.append', config.mappings.append, 'string')
   H.check_type('mappings.toggle', config.mappings.toggle, 'string')
-  H.check_type('mappings.copy', config.mappings.copy, 'string')
-  H.check_type('mappings.clear', config.mappings.clear, 'string')
 
   H.check_type('window', config.window, 'table')
   H.check_type('window.width', config.window.width, 'number')
@@ -143,8 +110,6 @@ H.apply_config = function(config)
   H.map('n', m.append, '<Cmd>lua Mention.append()<CR>', { desc = 'Append mention for current file' })
   H.map('x', m.append, '<Cmd>lua Mention.append()<CR>', { desc = 'Append mention for selected lines' })
   H.map('n', m.toggle, '<Cmd>lua Mention.toggle()<CR>', { desc = 'Toggle mention collection' })
-  H.map('n', m.copy, '<Cmd>lua Mention.copy()<CR>', { desc = 'Copy mention collection' })
-  H.map('n', m.clear, '<Cmd>lua Mention.clear()<CR>', { desc = 'Clear mention collection' })
 end
 
 -- Mentions -------------------------------------------------------------------

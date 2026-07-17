@@ -1,9 +1,9 @@
 # mention.nvim
 
 Collect file and line-range mentions (`@path`, `@path#L1-5`) into a single
-buffer, interleave free-text instructions, and copy the whole collection to
-the system clipboard for pasting into Claude Code. One collection per project
-(keyed by cwd), persisted across sessions.
+buffer and interleave free-text instructions for pasting into Claude Code.
+One collection per project (keyed by cwd), persisted across sessions as a
+plain file: open it and take its content from there.
 
 ## Requirements
 
@@ -18,7 +18,7 @@ vim.pack.add({ 'https://github.com/j4shu/mention.nvim' })
 ## Setup
 
 No keymaps are created by default; the only built-in key is a buffer-local
-`q` that closes the float. Set the four mappings via config. Default config:
+`q` that closes the float. Set the two mappings via config. Default config:
 
 ```lua
 require('mention').setup({
@@ -32,12 +32,6 @@ require('mention').setup({
     -- Open the collection in a centered float, or close it if open. It also
     -- closes on `q` or when focus leaves it; edit it like any buffer.
     toggle = '',
-
-    -- Copy the entire collection verbatim to the system clipboard.
-    copy = '',
-
-    -- Empty the collection after confirmation; never deletes it.
-    clear = '',
   },
 
   -- Collection window geometry (fractions of the editor size)
@@ -59,8 +53,6 @@ require('mention').setup({
   mappings = {
     append = '<leader>a',
     toggle = '<leader>A',
-    copy = '<leader>y',
-    clear = '<leader>X',
   },
 })
 ```
