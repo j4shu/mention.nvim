@@ -67,7 +67,7 @@ Mention.config
       window = {
         width = 0.5,
         height = 0.6,
-        border = 'rounded',
+        border = nil, -- Defaults to `vim.o.winborder`
       },
 
       -- Whether to suppress non-error feedback
@@ -81,7 +81,8 @@ Mention.config
 
   `config.window` sets the float geometry as fractions of the editor size,
   with a hardcoded minimum of 40x10 cells. `border` accepts any
-  |nvim_open_win()| border value.
+  |nvim_open_win()| border string. When unset, the float follows the
+  'winborder' option, or uses 'rounded' if that is empty.
 
   `config.silent` set to `true` suppresses INFO notifications (append).
   Errors are never suppressed.

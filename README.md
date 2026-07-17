@@ -40,7 +40,7 @@ require('mention').setup({
   window = {
     width = 0.5,
     height = 0.6,
-    border = 'rounded',
+    border = nil, -- Defaults to `vim.o.winborder`
   },
 
   -- Whether to suppress non-error feedback

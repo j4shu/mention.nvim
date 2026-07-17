@@ -72,7 +72,7 @@ Mention.config = {
   window = {
     width = 0.5,
     height = 0.6,
-    border = 'rounded',
+    border = nil, -- Defaults to `vim.o.winborder`
   },
 
   -- Whether to suppress non-error feedback
@@ -100,7 +100,7 @@ H.setup_config = function(config)
   H.check_type('window', config.window, 'table')
   H.check_type('window.width', config.window.width, 'number')
   H.check_type('window.height', config.window.height, 'number')
-  H.check_type('window.border', config.window.border, 'string')
+  H.check_type('window.border', config.window.border, 'string', true)
 
   H.check_type('silent', config.silent, 'boolean')
 
@@ -203,7 +203,7 @@ H.float_open = function()
     height = height,
     col = math.floor((vim.o.columns - width) / 2),
     row = math.floor((vim.o.lines - height) / 2) - 1,
-    border = Mention.config.window.border,
+    border = Mention.config.window.border or (vim.o.winborder == '' and 'rounded' or nil),
     title = ' \u{f1fa} mention.nvim ', -- nf-fa-at + plugin name
     title_pos = 'center',
   })
