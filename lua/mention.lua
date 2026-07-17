@@ -154,13 +154,12 @@ end
 
 -- Collection -----------------------------------------------------------------
 -- Path of the persisted collection: keyed by cwd at first use (undofile-style
--- encoding), unaffected by later `:cd`. The `.md` extension makes filetype
--- detection give the buffer markdown highlighting.
+-- encoding), unaffected by later `:cd`
 H.state_path = function()
   if H.cache.state_path == nil then
     local dir = vim.fs.joinpath(vim.fn.stdpath('state'), 'mention.nvim')
     vim.fn.mkdir(dir, 'p')
-    H.cache.state_path = vim.fs.joinpath(dir, (vim.fn.getcwd():gsub('[\\/:]', '%%')) .. '.md')
+    H.cache.state_path = vim.fs.joinpath(dir, (vim.fn.getcwd():gsub('[\\/:]', '%%')))
   end
   return H.cache.state_path
 end
@@ -174,17 +173,12 @@ H.ensure_collection_buf = function()
   local group = vim.api.nvim_create_augroup('Mention', {})
   -- Autosave makes swap files redundant (and their recovery prompts ugly).
   -- Re-apply on enter/read: entering a `bufadd()`ed buffer for the first
-  -- time re-initializes its buffer-local options (Neovim 0.13), losing the
-  -- detected filetype without re-running detection. Guard the restore so
-  -- ftplugin/syntax don't re-source on every enter.
-  local reinit = function()
-    vim.bo[buf_id].swapfile = false
-    if vim.bo[buf_id].filetype ~= 'markdown' then vim.bo[buf_id].filetype = 'markdown' end
-  end
-  reinit()
+  -- time re-initializes its buffer-local options (Neovim 0.13).
+  local swapoff = function() vim.bo[buf_id].swapfile = false end
+  swapoff()
   vim.api.nvim_create_autocmd(
     { 'BufEnter', 'BufReadPost' },
-    { group = group, buffer = buf_id, callback = reinit, desc = 'Restore mention collection buffer-local options' }
+    { group = group, buffer = buf_id, callback = swapoff, desc = 'Keep mention collection swapless' }
   )
 
   -- The one built-in key: buffer-local `q` closes the float (sacrifices
