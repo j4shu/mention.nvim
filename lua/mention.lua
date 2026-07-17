@@ -19,6 +19,26 @@ Mention.setup = function(config)
   H.apply_config(config)
 end
 
+--- Append a mention to the collection
+---
+--- Mode-aware: in Visual mode appends the current file with the selected line
+--- range (`@path#L<n>` / `@path#L<n>-<m>`), otherwise the whole file
+--- (`@path`). Paths are absolute with `~` for home. The mention is followed
+--- by one blank line, at the end of the collection, and persisted.
+Mention.append = function()
+  local path = vim.fn.expand('%:p:~')
+  if path == '' then return H.notify('cannot append: buffer has no name', 'ERROR') end
+  local mention = '@' .. path .. H.range_suffix()
+
+  local buf_id = H.ensure_collection_buf()
+  local last = vim.api.nvim_buf_line_count(buf_id)
+  local is_empty = last == 1 and vim.api.nvim_buf_get_lines(buf_id, 0, 1, true)[1] == ''
+  vim.api.nvim_buf_set_lines(buf_id, is_empty and 0 or last, last, true, { mention, '' })
+  H.collection_save(buf_id)
+
+  H.notify(mention, 'INFO')
+end
+
 --- Module config
 ---
 --- Default values:
@@ -53,8 +73,8 @@ Mention.config = {
 -- Module default config
 H.default_config = vim.deepcopy(Mention.config)
 
--- Runtime state: collection buffer and window ids
-H.cache = { buf_id = nil, win_id = nil }
+-- Runtime state: collection buffer and window ids, resolved collection path
+H.cache = { buf_id = nil, win_id = nil, state_path = nil }
 
 -- Helper functionality =======================================================
 -- Settings -------------------------------------------------------------------
@@ -89,6 +109,63 @@ H.apply_config = function(config)
   H.map('n', m.clear, '<Cmd>lua Mention.clear()<CR>', { desc = 'Clear mention collection' })
 end
 
+-- Mentions -------------------------------------------------------------------
+-- `#L<n>` / `#L<n>-<m>` for the Visual selection; '' outside Visual mode
+H.range_suffix = function()
+  if not vim.fn.mode():match('[vV\22]') then return '' end
+  local from, to = vim.fn.line('v'), vim.fn.line('.')
+  if from > to then from, to = to, from end
+  return from == to and ('#L' .. from) or ('#L' .. from .. '-' .. to)
+end
+
+-- Collection -----------------------------------------------------------------
+-- Path of the persisted collection: keyed by cwd at first use (undofile-style
+-- encoding), unaffected by later `:cd`
+H.state_path = function()
+  if H.cache.state_path == nil then
+    local dir = vim.fs.joinpath(vim.fn.stdpath('state'), 'mention.nvim')
+    vim.fn.mkdir(dir, 'p')
+    H.cache.state_path = vim.fs.joinpath(dir, (vim.fn.getcwd():gsub('[\\/:]', '%%')))
+  end
+  return H.cache.state_path
+end
+
+H.ensure_collection_buf = function()
+  if H.cache.buf_id ~= nil and vim.api.nvim_buf_is_valid(H.cache.buf_id) then return H.cache.buf_id end
+
+  local buf_id = vim.fn.bufadd(H.state_path())
+  vim.fn.bufload(buf_id)
+
+  local group = vim.api.nvim_create_augroup('Mention', {})
+  -- Autosave makes swap files redundant (and their recovery prompts ugly).
+  -- Re-apply on enter/read: entering a `bufadd()`ed buffer for the first
+  -- time re-initializes its buffer-local options (Neovim 0.13).
+  local swapoff = function() vim.bo[buf_id].swapfile = false end
+  swapoff()
+  vim.api.nvim_create_autocmd(
+    { 'BufEnter', 'BufReadPost' },
+    { group = group, buffer = buf_id, callback = swapoff, desc = 'Keep mention collection swapless' }
+  )
+
+  local save = function() H.collection_save(buf_id) end
+  vim.api.nvim_create_autocmd(
+    { 'TextChanged', 'InsertLeave', 'BufLeave' },
+    { group = group, buffer = buf_id, callback = save, desc = 'Autosave mention collection' }
+  )
+  vim.api.nvim_create_autocmd(
+    'VimLeavePre',
+    { group = group, callback = save, desc = 'Autosave mention collection' }
+  )
+
+  H.cache.buf_id = buf_id
+  return buf_id
+end
+
+H.collection_save = function(buf_id)
+  if not vim.api.nvim_buf_is_valid(buf_id) then return end
+  vim.api.nvim_buf_call(buf_id, function() vim.cmd('silent update') end)
+end
+
 -- Utilities ------------------------------------------------------------------
 H.error = function(msg) error('(mention) ' .. msg, 0) end
 
@@ -98,7 +175,7 @@ H.check_type = function(name, val, ref, allow_nil)
 end
 
 H.notify = function(msg, level_name)
-  if Mention.config.silent then return end
+  if Mention.config.silent and level_name ~= 'ERROR' then return end
   vim.notify('(mention) ' .. msg, vim.log.levels[level_name])
 end
 
