@@ -250,7 +250,7 @@ H.collection_save = function(buf_id)
 end
 
 -- Utilities ------------------------------------------------------------------
-H.error = function(msg) error('(mention) ' .. msg, 0) end
+H.error = function(msg) error('(mention.nvim) ' .. msg, 0) end
 
 H.check_type = function(name, val, ref, allow_nil)
   if type(val) == ref or (ref == 'callable' and vim.is_callable(val)) or (allow_nil and val == nil) then return end
@@ -259,7 +259,7 @@ end
 
 H.notify = function(msg, level_name)
   if Mention.config.silent and level_name ~= 'ERROR' then return end
-  vim.notify('(mention) ' .. msg, vim.log.levels[level_name])
+  vim.notify('(mention.nvim) ' .. msg, vim.log.levels[level_name])
 end
 
 H.map = function(mode, lhs, rhs, opts)
