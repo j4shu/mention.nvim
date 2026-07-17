@@ -3,15 +3,38 @@
 ==============================================================================
 Table of contents                                           *mention-contents*
 
-  Setup ....................................................... |Mention.setup()|
-  Config ...................................................... |Mention.config|
+  Overview .................................................. |mention.nvim|
+  Setup .................................................. |Mention.setup()|
+  Config .................................................. |Mention.config|
+  Append ................................................ |Mention.append()|
+  Toggle ................................................ |Mention.toggle()|
+  Copy .................................................... |Mention.copy()|
+  Clear .................................................. |Mention.clear()|
+  Mappings .............................................. |mention-mappings|
+  Storage ................................................ |mention-storage|
+
+==============================================================================
+Overview                                                        *mention.nvim*
+
+Append file/line-range mentions (`@path`, `@path#L1-5`) to a single
+collection buffer, interleave free-text instructions, and copy the whole
+collection to the system clipboard for pasting into Claude Code.
+
+The collection is a regular buffer: edit it freely, reorder mentions, type
+instructions between them. There is exactly one collection per project
+(keyed by the working directory) and it persists across sessions (see
+|mention-storage|).
+
+Feedback uses |vim.notify()| with a `(mention) ` prefix. Errors are always
+shown; set `config.silent` to `true` to suppress the rest.
 
 ==============================================================================
                                                              *Mention.setup()*
 Mention.setup({config})
 
-  Module setup. Creates the `Mention` global Lua table. No mappings are
-  created by default; set them via |Mention.config|.
+  Module setup. Creates the `Mention` global Lua table and applies the
+  mappings from {config}. No mappings are created by default; see
+  |mention-mappings|.
 
   Parameters ~
     {config}  `(table|nil)` Module config table. See |Mention.config|.
@@ -31,9 +54,16 @@ Mention.config
     Mention.config = {
       -- Module mappings. Use `''` (empty string) to disable one.
       mappings = {
+        -- Append mention for current file (Normal) or line range (Visual)
         append = '',
+
+        -- Toggle the collection window
         toggle = '',
+
+        -- Copy entire collection to system clipboard
         copy = '',
+
+        -- Clear the collection (asks for confirmation)
         clear = '',
       },
 
@@ -48,4 +78,88 @@ Mention.config
       silent = false,
     }
 <
+  `config.mappings` holds the left-hand side of each operation's keymap.
+  `append` is mapped in Normal and Visual mode; the rest in Normal mode
+  only. An empty string creates no mapping.
+
+  `config.window` sets the float geometry as fractions of the editor size,
+  with a hardcoded minimum of 40x10 cells. `border` accepts any
+  |nvim_open_win()| border value.
+
+  `config.silent` set to `true` suppresses INFO notifications (append,
+  copy, clear). Errors and the clear confirmation are never suppressed.
+
+==============================================================================
+                                                            *Mention.append()*
+Mention.append()
+
+  Append a mention for the current file to the collection.
+
+  Mode-aware: in Visual mode appends the file with the selected line range
+  (`@path#L<n>` for one line, `@path#L<n>-<m>` for several), otherwise the
+  whole file (`@path`). Paths are absolute with `~` for home, which Claude
+  Code expands.
+
+  The mention lands at the end of the collection followed by one blank
+  line, and is persisted immediately. The collection window is not opened:
+  you stay where you are, and a notification shows the appended mention.
+
+  Appending from an unnamed buffer is an error.
+
+==============================================================================
+                                                            *Mention.toggle()*
+Mention.toggle()
+
+  Open the collection in a centered float, or close it if open.
+
+  The float's geometry comes from `config.window` (minimum 40x10) and the
+  cursor starts on the last line in Normal mode. It closes via this
+  function, the buffer-local `q` mapping, or automatically when focus
+  leaves the window.
+
+==============================================================================
+                                                              *Mention.copy()*
+Mention.copy()
+
+  Copy the entire collection verbatim into the `+` register (linewise),
+  ready to paste into Claude. Leaves the collection window untouched and
+  notifies with the copied line count.
+
+==============================================================================
+                                                             *Mention.clear()*
+Mention.clear()
+
+  Empty the collection after confirmation (defaults to No) and persist the
+  empty state. Never deletes the buffer or its file; the collection window
+  stays open if open.
+
+==============================================================================
+Mappings                                                    *mention-mappings*
+
+No keymaps are created by default. The only built-in key is a buffer-local
+`q` in the collection buffer that closes the float.
+
+Bind the four operations through `config.mappings`, for example:
+>lua
+    require('mention').setup({
+      mappings = {
+        append = '<leader>a',
+        toggle = '<leader>A',
+        copy = '<leader>y',
+        clear = '<leader>X',
+      },
+    })
+<
+==============================================================================
+Storage                                                      *mention-storage*
+
+The collection is a real file at `stdpath('state')/mention.nvim/<cwd>`,
+where `<cwd>` is the working directory at first use, encoded like
+'undofile' names. Later |:cd| does not move the collection within the
+session; each project directory gets its own collection across sessions.
+
+The buffer autosaves (on text change, leaving Insert mode, leaving the
+buffer, and quitting Neovim) and keeps 'swapfile' off. |Mention.clear()|
+empties the file but never deletes it.
+
  vim:tw=78:ts=8:noet:ft=help:norl:
