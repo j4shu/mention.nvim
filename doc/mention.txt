@@ -153,9 +153,10 @@ Bind the four operations through `config.mappings`, for example:
 ==============================================================================
 Storage                                                      *mention-storage*
 
-The collection is a real file at `stdpath('state')/mention.nvim/<cwd>`,
+The collection is a real file at `stdpath('state')/mention.nvim/<cwd>.md`,
 where `<cwd>` is the working directory at first use, encoded like
-'undofile' names. Later |:cd| does not move the collection within the
+'undofile' names. The `.md` extension gives the buffer markdown
+highlighting. Later |:cd| does not move the collection within the
 session; each project directory gets its own collection across sessions.
 
 The buffer autosaves (on leaving the buffer and on quitting Neovim) and

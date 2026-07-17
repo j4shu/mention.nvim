@@ -154,12 +154,13 @@ end
 
 -- Collection -----------------------------------------------------------------
 -- Path of the persisted collection: keyed by cwd at first use (undofile-style
--- encoding), unaffected by later `:cd`
+-- encoding), unaffected by later `:cd`. The `.md` extension makes filetype
+-- detection give the buffer markdown highlighting.
 H.state_path = function()
   if H.cache.state_path == nil then
     local dir = vim.fs.joinpath(vim.fn.stdpath('state'), 'mention.nvim')
     vim.fn.mkdir(dir, 'p')
-    H.cache.state_path = vim.fs.joinpath(dir, (vim.fn.getcwd():gsub('[\\/:]', '%%')))
+    H.cache.state_path = vim.fs.joinpath(dir, (vim.fn.getcwd():gsub('[\\/:]', '%%')) .. '.md')
   end
   return H.cache.state_path
 end
