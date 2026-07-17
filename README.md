@@ -1,75 +1,42 @@
 # mention.nvim
 
 Collect file and line-range mentions (`@path`, `@path#L1-5`) into a single
-per-project buffer, interleave free-text instructions, and copy the whole
-collection to the system clipboard for pasting into Claude Code.
-
-## Operations
-
-Four argument-free Lua functions, all bound through config:
-
-- `require('mention').append()`: append a mention for the current file to the
-  collection. Mode-aware: in Visual mode it appends the selected line range
-  (`@path#L3` or `@path#L3-7`), otherwise the whole file (`@path`). Paths are
-  absolute with `~` for home, which Claude Code expands. Silent flow: you stay
-  where you are; a `(mention)` notification shows what was appended.
-- `require('mention').toggle()`: open the collection in a centered float, or
-  close it if open. The float also closes on buffer-local `q` or when focus
-  leaves it. The collection is a regular buffer: reorder mentions, delete
-  lines, type instructions between them.
-- `require('mention').copy()`: put the entire collection verbatim into the
-  `+` register, ready to paste into Claude.
-- `require('mention').clear()`: empty the collection after confirmation
-  (defaults to No). Never deletes the buffer or its file.
-
-There is exactly one collection per project, keyed by the working directory,
-and it persists across sessions under `stdpath('state')/mention.nvim/`.
+buffer, interleave free-text instructions, and copy the whole collection to
+the system clipboard for pasting into Claude Code. One collection per project
+(keyed by cwd), persisted across sessions.
 
 ## Requirements
 
-- Neovim >= 0.10
+- Neovim >= 0.12
 
 ## Installation
 
-With [lazy.nvim](https://github.com/folke/lazy.nvim):
-
 ```lua
-{
-  'j4shu/mention.nvim',
-  opts = {
-    mappings = {
-      append = '<leader>a',
-      toggle = '<leader>A',
-      copy = '<leader>y',
-      clear = '<leader>X',
-    },
-  },
-}
+vim.pack.add({ 'https://github.com/j4shu/mention.nvim' })
 ```
-
-With any other plugin manager, install `j4shu/mention.nvim` and call
-`require('mention').setup({ ... })`.
 
 ## Setup
 
 No keymaps are created by default; the only built-in key is a buffer-local
-`q` that closes the float. Set the four mappings via config (the block above
-is a suggestion, not a default). Default config:
+`q` that closes the float. Set the four mappings via config. Default config:
 
 ```lua
 require('mention').setup({
   -- Module mappings. Use `''` (empty string) to disable one.
   mappings = {
-    -- Append mention for current file (Normal) or line range (Visual)
+    -- Append a mention for the current file (Normal) or the selected line
+    -- range (Visual) to the end of the collection. Paths are `~`-absolute,
+    -- which Claude Code expands. You stay where you are.
     append = '',
 
-    -- Toggle the collection window
+    -- Open the collection in a centered float, or close it if open. It also
+    -- closes on `q` or when focus leaves it; edit it like any buffer.
     toggle = '',
 
-    -- Copy entire collection to system clipboard
+    -- Copy the entire collection verbatim to the system clipboard.
     copy = '',
 
-    -- Clear the collection (asks for confirmation)
+    -- Empty the collection after confirmation; never deletes it.
     clear = '',
   },
 
@@ -82,6 +49,19 @@ require('mention').setup({
 
   -- Whether to suppress non-error feedback
   silent = false,
+})
+```
+
+For example:
+
+```lua
+require('mention').setup({
+  mappings = {
+    append = '<leader>a',
+    toggle = '<leader>A',
+    copy = '<leader>y',
+    clear = '<leader>X',
+  },
 })
 ```
 
