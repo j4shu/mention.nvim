@@ -1,0 +1,51 @@
+*mention.txt*  Collect file mentions for pasting into Claude
+
+==============================================================================
+Table of contents                                           *mention-contents*
+
+  Setup ....................................................... |Mention.setup()|
+  Config ...................................................... |Mention.config|
+
+==============================================================================
+                                                             *Mention.setup()*
+Mention.setup({config})
+
+  Module setup. Creates the `Mention` global Lua table. No mappings are
+  created by default; set them via |Mention.config|.
+
+  Parameters ~
+    {config}  `(table|nil)` Module config table. See |Mention.config|.
+
+  Usage ~
+>lua
+    require('mention').setup() -- use default config
+    -- OR
+    require('mention').setup({}) -- replace {} with your config table
+<
+==============================================================================
+                                                              *Mention.config*
+Mention.config
+
+  Default values:
+>lua
+    Mention.config = {
+      -- Module mappings. Use `''` (empty string) to disable one.
+      mappings = {
+        append = '',
+        toggle = '',
+        copy = '',
+        clear = '',
+      },
+
+      -- Collection window geometry (fractions of the editor size)
+      window = {
+        width = 0.5,
+        height = 0.6,
+        border = 'rounded',
+      },
+
+      -- Whether to suppress non-error feedback
+      silent = false,
+    }
+<
+ vim:tw=78:ts=8:noet:ft=help:norl:
