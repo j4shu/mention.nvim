@@ -58,7 +58,7 @@ end
 T['setup()']['creates config with defaults'] = function()
   eq(child.lua_get('type(Mention.config)'), 'table')
   eq(child.lua_get('Mention.config.mappings'), { append = '', toggle = '', close = 'q' })
-  eq(child.lua_get('Mention.config.window'), { width = 0.5, height = 0.6, border = 'rounded' })
+  eq(child.lua_get('Mention.config.window'), { width = 0.5, height = 0.6 })
   eq(child.lua_get('Mention.config.silent'), false)
 end
 
@@ -250,6 +250,25 @@ T['toggle()']['respects `config.window`'] = function()
 
   local cfg = child.api.nvim_win_get_config(child.api.nvim_get_current_win())
   eq({ cfg.width, cfg.height }, { 80, 15 })
+  eq(cfg.border[1], '┌')
+end
+
+T['toggle()']["follows 'winborder' when `config.window.border` is unset"] = function()
+  child.o.winborder = 'double'
+  edit_test_file()
+  child.lua('Mention.toggle()')
+
+  local cfg = child.api.nvim_win_get_config(child.api.nvim_get_current_win())
+  eq(cfg.border[1], '╔')
+end
+
+T['toggle()']["prefers `config.window.border` over 'winborder'"] = function()
+  child.o.winborder = 'double'
+  child.lua([[Mention.setup({ window = { border = 'single' } })]])
+  edit_test_file()
+  child.lua('Mention.toggle()')
+
+  local cfg = child.api.nvim_win_get_config(child.api.nvim_get_current_win())
   eq(cfg.border[1], '┌')
 end
 
