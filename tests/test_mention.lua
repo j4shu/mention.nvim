@@ -3,7 +3,7 @@ local expect, eq = MiniTest.expect, MiniTest.expect.equality
 
 local child = MiniTest.new_child_neovim()
 
--- Isolate collection storage and cwd per case. The sandbox lives in the test
+-- Isolate mention buffer storage and cwd per case. The sandbox lives in the test
 -- runner's tempdir so it survives child restarts and exits.
 local sandbox_root
 
@@ -32,7 +32,7 @@ local mock_notify = function()
   ]])
 end
 
--- Path of the persisted collection: single file under the state subdirectory
+-- Path of the persisted mention buffer: single file under the state subdirectory
 local state_files = function()
   local dir = child.lua_get([[vim.fn.stdpath('state')]]) .. '/mention.nvim'
   return vim.fn.glob(dir .. '/*', true, true)
@@ -170,7 +170,7 @@ T['append()']['errors on a buffer without a name'] = function()
   eq(#state_files(), 0)
 end
 
-T['append()']['keys the collection by cwd at first use, unaffected by later `:cd`'] = function()
+T['append()']['keys the mention buffer by cwd at first use, unaffected by later `:cd`'] = function()
   local path = edit_test_file()
   child.lua('Mention.append()')
   child.fn.mkdir(sandbox_root .. '/other', 'p')
@@ -185,7 +185,7 @@ T['append()']['keys the collection by cwd at first use, unaffected by later `:cd
   eq(vim.fn.readfile(files[1]), { mention, '', mention, '' })
 end
 
-T['append()']['persists the collection across sessions'] = function()
+T['append()']['persists the mention buffer across sessions'] = function()
   local path = edit_test_file()
   child.lua('Mention.append()')
 
@@ -199,7 +199,7 @@ T['append()']['persists the collection across sessions'] = function()
   eq(vim.fn.readfile(state_files()[1]), { mention, '', mention, '' })
 end
 
-T['append()']['saves collection edits on leaving its buffer'] = function()
+T['append()']['saves mention buffer edits on leaving it'] = function()
   edit_test_file()
   child.lua('Mention.append()')
   local state_file = state_files()[1]
@@ -217,7 +217,7 @@ end
 
 T['toggle()'] = new_set({ hooks = { pre_case = setup_sandbox } })
 
-T['toggle()']['opens a centered float showing the collection'] = function()
+T['toggle()']['opens a centered float showing the mention buffer'] = function()
   child.o.columns, child.o.lines = 100, 30
   edit_test_file()
   child.lua('Mention.append()')
@@ -273,7 +273,7 @@ T['toggle()']['opens with the cursor on the last line in Normal mode'] = functio
   child.type_keys('<Esc>')
   child.lua('Mention.toggle()')
 
-  -- Collection: mention, blank, range mention, blank
+  -- Mention buffer: mention, blank, range mention, blank
   eq(child.api.nvim_buf_line_count(0), 4)
   eq(child.api.nvim_win_get_cursor(0), { 4, 0 })
   eq(child.fn.mode(), 'n')
@@ -290,7 +290,7 @@ T['toggle()']['closes the float on buffer-local `q`'] = function()
   eq(child.is_blocked(), false)
   eq(child.api.nvim_win_is_valid(float_win), false)
   eq(child.api.nvim_get_current_win(), prev_win)
-  -- `q` stays ordinary (macro recording) outside the collection buffer
+  -- `q` stays ordinary (macro recording) outside the mention buffer
   eq(child.fn.maparg('q', 'n'), '')
 end
 
@@ -301,7 +301,7 @@ T['toggle()']['respects `config.mappings.close`'] = function()
   child.lua('Mention.toggle()')
   local float_win = child.api.nvim_get_current_win()
 
-  -- `q` is free (for macro recording) in the collection buffer
+  -- `q` is free (for macro recording) in the mention buffer
   eq(child.lua_get([[next(vim.fn.maparg('q', 'n', false, true)) == nil]]), true)
   child.type_keys('<Esc>')
   eq(child.api.nvim_win_is_valid(float_win), false)
@@ -343,18 +343,18 @@ T['full flow']['append, toggle, edit free text, append again'] = function()
   child.lua('Mention.toggle()')
   eq(vim.fn.readfile(state_files()[1]), { mention, 'refactor this' })
 
-  -- Collection stays usable after free-text edits
+  -- Mention buffer stays usable after free-text edits
   child.cmd('edit ' .. child.fn.fnameescape(path))
   child.lua('Mention.append()')
   eq(vim.fn.readfile(state_files()[1]), { mention, 'refactor this', mention, '' })
 end
 
-T['append()']['persists unsaved collection changes on quit'] = function()
+T['append()']['persists unsaved mention buffer changes on quit'] = function()
   edit_test_file()
   child.lua('Mention.append()')
   local state_file = state_files()[1]
 
-  -- Modify the collection without visiting it, so no autosave event fires
+  -- Modify the mention buffer without visiting it, so no autosave event fires
   child.lua(
     ('vim.api.nvim_buf_set_lines(vim.fn.bufnr(%s), -1, -1, true, { "trailing note" })'):format(
       vim.inspect(state_file)

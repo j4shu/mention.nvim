@@ -1,7 +1,7 @@
---- *mention.nvim* Collect file mentions for pasting into Claude
+--- *mention.nvim* Collect file mentions for pasting into a coding agent
 ---
 --- Append file/line-range mentions (`@path`, `@path#L1-5`) to a single
---- collection buffer and interleave free-text instructions. The collection
+--- mention buffer and interleave free-text instructions. The mention buffer
 --- persists as a plain file, ready to open and use directly.
 ---
 --- Setup with `require('mention').setup({})` (replace `{}` with your config).
@@ -19,13 +19,13 @@ Mention.setup = function(config)
   H.apply_config(config)
 end
 
---- Append a mention to the collection
+--- Append a mention to the mention buffer
 ---
 --- Mode-aware: in Visual mode appends the current file with the selected line
 --- range (`@path#L<n>` / `@path#L<n>-<m>`) and returns to Normal mode,
---- otherwise the whole file (`@path`). Paths are absolute with `~` for home.
---- The mention is followed by one blank line, at the end of the collection,
---- and persisted.
+--- otherwise the whole file (`@path`).
+--- The mention is followed by one blank line, at the end of the mention
+--- buffer, and persisted.
 Mention.append = function()
   local path = vim.fn.expand('%:p:~')
   if path == '' then return H.notify('cannot append: buffer has no name', 'ERROR') end
@@ -34,18 +34,18 @@ Mention.append = function()
   -- now that the range is captured
   if vim.fn.mode():match('[vV\22]') then vim.cmd('normal! \27') end
 
-  local buf_id = H.ensure_collection_buf()
+  local buf_id = H.ensure_mention_buf()
   local last = vim.api.nvim_buf_line_count(buf_id)
   local is_empty = last == 1 and vim.api.nvim_buf_get_lines(buf_id, 0, 1, true)[1] == ''
   vim.api.nvim_buf_set_lines(buf_id, is_empty and 0 or last, last, true, { mention, '' })
-  H.collection_save(buf_id)
+  H.mention_buf_save(buf_id)
 
   H.notify(mention, 'INFO')
 end
 
---- Toggle the collection window
+--- Toggle the mention buffer
 ---
---- Opens the collection in a centered float (geometry per `config.window`,
+--- Opens the mention buffer in a centered float (geometry per `config.window`,
 --- minimum 40x10) with the cursor on the last line, or closes it if open.
 Mention.toggle = function()
   if H.float_is_open() then return H.float_close(true) end
@@ -61,14 +61,14 @@ Mention.config = {
     -- Append mention for current file (Normal) or line range (Visual)
     append = '',
 
-    -- Toggle the collection window
+    -- Toggle the mention buffer
     toggle = '',
 
-    -- Close the collection window (buffer-local in the collection buffer)
+    -- Close the float (buffer-local in the mention buffer)
     close = 'q',
   },
 
-  -- Collection window geometry (fractions of the editor size)
+  -- Float geometry (fractions of the editor size)
   window = {
     width = 0.5,
     height = 0.6,
@@ -83,7 +83,7 @@ Mention.config = {
 -- Module default config
 H.default_config = vim.deepcopy(Mention.config)
 
--- Runtime state: collection buffer and window ids, resolved collection path
+-- Runtime state: mention buffer and window ids, resolved state path
 H.cache = { buf_id = nil, win_id = nil, state_path = nil }
 
 -- Helper functionality =======================================================
@@ -113,7 +113,7 @@ H.apply_config = function(config)
   local m = config.mappings
   H.map('n', m.append, '<Cmd>lua Mention.append()<CR>', { desc = 'Append mention for current file' })
   H.map('x', m.append, '<Cmd>lua Mention.append()<CR>', { desc = 'Append mention for selected lines' })
-  H.map('n', m.toggle, '<Cmd>lua Mention.toggle()<CR>', { desc = 'Toggle mention collection' })
+  H.map('n', m.toggle, '<Cmd>lua Mention.toggle()<CR>', { desc = 'Toggle mention buffer' })
 end
 
 -- Mentions -------------------------------------------------------------------
@@ -125,9 +125,9 @@ H.range_suffix = function()
   return from == to and ('#L' .. from) or ('#L' .. from .. '-' .. to)
 end
 
--- Collection -----------------------------------------------------------------
--- Path of the persisted collection: keyed by cwd at first use (undofile-style
--- encoding), unaffected by later `:cd`
+-- Mention buffer -------------------------------------------------------------
+-- Path of the persisted mention buffer: keyed by cwd at first use
+-- (undofile-style encoding), unaffected by later `:cd`
 H.state_path = function()
   if H.cache.state_path == nil then
     local dir = vim.fs.joinpath(vim.fn.stdpath('state'), 'mention.nvim')
@@ -137,7 +137,7 @@ H.state_path = function()
   return H.cache.state_path
 end
 
-H.ensure_collection_buf = function()
+H.ensure_mention_buf = function()
   if H.cache.buf_id ~= nil and vim.api.nvim_buf_is_valid(H.cache.buf_id) then return H.cache.buf_id end
 
   local buf_id = vim.fn.bufadd(H.state_path())
@@ -151,25 +151,25 @@ H.ensure_collection_buf = function()
   swapoff()
   vim.api.nvim_create_autocmd(
     { 'BufEnter', 'BufReadPost' },
-    { group = group, buffer = buf_id, callback = swapoff, desc = 'Keep mention collection swapless' }
+    { group = group, buffer = buf_id, callback = swapoff, desc = 'Keep mention buffer swapless' }
   )
 
   -- Buffer-local close key (the default `q` sacrifices macro recording in
   -- this buffer); `nowait` beats non-buffer mappings sharing the prefix
   H.map('n', Mention.config.mappings.close, function()
     if H.float_is_open() then H.float_close(true) end
-  end, { buffer = buf_id, nowait = true, desc = 'Close mention collection' })
+  end, { buffer = buf_id, nowait = true, desc = 'Close mention buffer' })
 
   -- Boundary saves suffice: edits happen only in the float and every way out
   -- of it fires BufLeave; VimLeavePre covers quitting from inside it.
-  local save = function() H.collection_save(buf_id) end
+  local save = function() H.mention_buf_save(buf_id) end
   vim.api.nvim_create_autocmd(
     'BufLeave',
-    { group = group, buffer = buf_id, callback = save, desc = 'Autosave mention collection' }
+    { group = group, buffer = buf_id, callback = save, desc = 'Autosave mention buffer' }
   )
   vim.api.nvim_create_autocmd(
     'VimLeavePre',
-    { group = group, callback = save, desc = 'Autosave mention collection' }
+    { group = group, callback = save, desc = 'Autosave mention buffer' }
   )
 
   H.cache.buf_id = buf_id
@@ -192,7 +192,7 @@ H.float_close = function(refocus)
 end
 
 H.float_open = function()
-  local buf_id = H.ensure_collection_buf()
+  local buf_id = H.ensure_mention_buf()
   H.cache.prev_win = vim.api.nvim_get_current_win()
 
   local width = math.max(40, math.floor(vim.o.columns * Mention.config.window.width))
@@ -216,11 +216,11 @@ H.float_open = function()
     buffer = buf_id,
     once = true,
     callback = function() vim.schedule(function() H.float_close(false) end) end,
-    desc = 'Auto-close mention collection float',
+    desc = 'Auto-close mention buffer float',
   })
 end
 
-H.collection_save = function(buf_id)
+H.mention_buf_save = function(buf_id)
   if not vim.api.nvim_buf_is_valid(buf_id) then return end
   vim.api.nvim_buf_call(buf_id, function() vim.cmd('silent update') end)
 end
