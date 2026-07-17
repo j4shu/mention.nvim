@@ -234,7 +234,7 @@ T['toggle()']['opens a centered float showing the collection'] = function()
   eq({ cfg.width, cfg.height }, { 50, 18 })
   eq({ cfg.col, cfg.row }, { 25, 5 })
   eq(cfg.border[1], '╭')
-  eq(cfg.title[1][1], ' mention collection ')
+  eq(cfg.title[1][1], ' \u{f1fa} mention.nvim ')
   -- Resolve: macOS buffer names resolve the /var -> /private/var symlink
   eq(child.api.nvim_buf_get_name(0), vim.fn.resolve(state_files()[1]))
 end
