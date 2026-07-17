@@ -1,3 +1,4 @@
 .claude/*
 !.claude/docs/
 deps/
+doc/tags
