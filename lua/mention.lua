@@ -22,13 +22,17 @@ end
 --- Append a mention to the collection
 ---
 --- Mode-aware: in Visual mode appends the current file with the selected line
---- range (`@path#L<n>` / `@path#L<n>-<m>`), otherwise the whole file
---- (`@path`). Paths are absolute with `~` for home. The mention is followed
---- by one blank line, at the end of the collection, and persisted.
+--- range (`@path#L<n>` / `@path#L<n>-<m>`) and returns to Normal mode,
+--- otherwise the whole file (`@path`). Paths are absolute with `~` for home.
+--- The mention is followed by one blank line, at the end of the collection,
+--- and persisted.
 Mention.append = function()
   local path = vim.fn.expand('%:p:~')
   if path == '' then return H.notify('cannot append: buffer has no name', 'ERROR') end
   local mention = '@' .. path .. H.range_suffix()
+  -- The `x` mapping is `<Cmd>`-based, which stays in Visual mode; leave it
+  -- now that the range is captured
+  if vim.fn.mode():match('[vV\22]') then vim.cmd('normal! \27') end
 
   local buf_id = H.ensure_collection_buf()
   local last = vim.api.nvim_buf_line_count(buf_id)

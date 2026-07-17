@@ -136,6 +136,14 @@ T['append()']['normalizes a reversed Visual selection'] = function()
   eq(vim.fn.readfile(state_files()[1]), { '@' .. child.fn.fnamemodify(path, ':p:~') .. '#L2-4', '' })
 end
 
+T['append()']['returns to Normal mode after a Visual append'] = function()
+  edit_test_file()
+  child.type_keys('2G', 'V', '2j')
+  child.lua('Mention.append()')
+
+  eq(child.fn.mode(), 'n')
+end
+
 T['append()']['separates successive entries with one blank line'] = function()
   local path = edit_test_file()
   child.lua('Mention.append()')
