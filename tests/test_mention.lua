@@ -57,7 +57,7 @@ end
 
 T['setup()']['creates config with defaults'] = function()
   eq(child.lua_get('type(Mention.config)'), 'table')
-  eq(child.lua_get('Mention.config.mappings'), { append = '', toggle = '' })
+  eq(child.lua_get('Mention.config.mappings'), { append = '', toggle = '', close = 'q' })
   eq(child.lua_get('Mention.config.window'), { width = 0.5, height = 0.6, border = 'rounded' })
   eq(child.lua_get('Mention.config.silent'), false)
 end
@@ -292,6 +292,28 @@ T['toggle()']['closes the float on buffer-local `q`'] = function()
   eq(child.api.nvim_get_current_win(), prev_win)
   -- `q` stays ordinary (macro recording) outside the collection buffer
   eq(child.fn.maparg('q', 'n'), '')
+end
+
+T['toggle()']['respects `config.mappings.close`'] = function()
+  child.lua([[Mention.setup({ mappings = { close = '<Esc>' } })]])
+  edit_test_file()
+  local prev_win = child.api.nvim_get_current_win()
+  child.lua('Mention.toggle()')
+  local float_win = child.api.nvim_get_current_win()
+
+  -- `q` is free (for macro recording) in the collection buffer
+  eq(child.lua_get([[next(vim.fn.maparg('q', 'n', false, true)) == nil]]), true)
+  child.type_keys('<Esc>')
+  eq(child.api.nvim_win_is_valid(float_win), false)
+  eq(child.api.nvim_get_current_win(), prev_win)
+end
+
+T['toggle()']['creates no close mapping for empty `mappings.close`'] = function()
+  child.lua([[Mention.setup({ mappings = { close = '' } })]])
+  edit_test_file()
+  child.lua('Mention.toggle()')
+
+  eq(child.lua_get([[next(vim.fn.maparg('q', 'n', false, true)) == nil]]), true)
 end
 
 T['toggle()']['auto-closes when focus leaves the float'] = function()

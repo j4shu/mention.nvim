@@ -17,8 +17,9 @@ vim.pack.add({ 'https://github.com/j4shu/mention.nvim' })
 
 ## Setup
 
-No keymaps are created by default; the only built-in key is a buffer-local
-`q` that closes the float. Set the two mappings via config. Default config:
+No global keymaps are created by default; the only built-in key is a
+buffer-local close mapping in the float (default `q`, configurable). Set the
+mappings via config. Default config:
 
 ```lua
 require('mention').setup({
@@ -30,8 +31,12 @@ require('mention').setup({
     append = '',
 
     -- Open the collection in a centered float, or close it if open. It also
-    -- closes on `q` or when focus leaves it; edit it like any buffer.
+    -- closes on the close key or when focus leaves it; edit it like any buffer.
     toggle = '',
+
+    -- Close the collection window (buffer-local in the collection buffer;
+    -- the default `q` sacrifices macro recording there)
+    close = 'q',
   },
 
   -- Collection window geometry (fractions of the editor size)
