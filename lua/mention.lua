@@ -22,14 +22,19 @@ end
 --- Append a mention to the mention buffer
 ---
 --- Mode-aware: in Visual mode appends the current file with the selected line
---- range (`@path#L<n>` / `@path#L<n>-<m>`) and returns to Normal mode,
---- otherwise the whole file (`@path`).
+--- range (default `@path#L<n>` / `@path#L<n>-<m>`) and returns to Normal
+--- mode, otherwise the whole file (default `@path`). The mention is rendered
+--- by `config.format`.
 --- The mention is followed by one blank line, at the end of the mention
 --- buffer, and persisted.
 Mention.append = function()
-  local path = vim.fn.expand('%:p:~')
+  local path = vim.fn.expand('%:p')
   if path == '' then return H.notify('cannot append: buffer has no name', 'ERROR') end
-  local mention = '@' .. path .. H.range_suffix()
+  local from, to = H.visual_range()
+  local mention = (Mention.config.format or H.default_format)(path, from, to)
+  if type(mention) ~= 'string' then
+    H.error('`format` should return a string, not ' .. type(mention))
+  end
   -- The `x` mapping is `<Cmd>`-based, which stays in Visual mode; leave it
   -- now that the range is captured
   if vim.fn.mode():match('[vV\22]') then vim.cmd('normal! \27') end
@@ -37,7 +42,9 @@ Mention.append = function()
   local buf_id = H.ensure_mention_buf()
   local last = vim.api.nvim_buf_line_count(buf_id)
   local is_empty = last == 1 and vim.api.nvim_buf_get_lines(buf_id, 0, 1, true)[1] == ''
-  vim.api.nvim_buf_set_lines(buf_id, is_empty and 0 or last, last, true, { mention, '' })
+  local lines = vim.split(mention, '\n')
+  table.insert(lines, '')
+  vim.api.nvim_buf_set_lines(buf_id, is_empty and 0 or last, last, true, lines)
   H.mention_buf_save(buf_id)
 
   H.notify(mention, 'INFO')
@@ -75,6 +82,10 @@ Mention.config = {
     border = nil, -- Defaults to `vim.o.winborder`
   },
 
+  -- Mention format: `function(path, from, to) -> string`, or `nil` for the
+  -- default `@path#L<from>-<to>`. See |Mention.config| for the contract.
+  format = nil,
+
   -- Whether to suppress non-error feedback
   silent = false,
 }
@@ -102,6 +113,8 @@ H.setup_config = function(config)
   H.check_type('window.height', config.window.height, 'number')
   H.check_type('window.border', config.window.border, 'string', true)
 
+  H.check_type('format', config.format, 'callable', true)
+
   H.check_type('silent', config.silent, 'boolean')
 
   return config
@@ -117,12 +130,20 @@ H.apply_config = function(config)
 end
 
 -- Mentions -------------------------------------------------------------------
--- `#L<n>` / `#L<n>-<m>` for the Visual selection; '' outside Visual mode
-H.range_suffix = function()
-  if not vim.fn.mode():match('[vV\22]') then return '' end
+-- Normalized Visual selection line range; nils outside Visual mode
+H.visual_range = function()
+  if not vim.fn.mode():match('[vV\22]') then return nil, nil end
   local from, to = vim.fn.line('v'), vim.fn.line('.')
   if from > to then from, to = to, from end
-  return from == to and ('#L' .. from) or ('#L' .. from .. '-' .. to)
+  return from, to
+end
+
+-- `@` + `~`-abbreviated path + `#L<n>` / `#L<n>-<m>` for a line range
+H.default_format = function(path, from, to)
+  path = vim.fn.fnamemodify(path, ':~')
+  if not from then return '@' .. path end
+  local range = from == to and from or (from .. '-' .. to)
+  return '@' .. path .. '#L' .. range
 end
 
 -- Mention buffer -------------------------------------------------------------

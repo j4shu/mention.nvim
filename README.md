@@ -43,6 +43,10 @@ require('mention').setup({
     border = nil, -- Defaults to `vim.o.winborder`
   },
 
+  -- Mention format: `function(path, from, to) -> string`, or `nil` for the
+  -- default `@path#L<from>-<to>`. See `:h Mention.config`.
+  format = nil,
+
   -- Whether to suppress non-error feedback
   silent = false,
 })
@@ -57,6 +61,24 @@ require('mention').setup({
     toggle = '<leader>m',
     close = '<Esc>'
   }
+})
+```
+
+## Mention format
+
+Mentions default to `@` + `~`-abbreviated absolute path + `#L<from>-<to>`
+for a Visual line range, which Claude Code parses natively. For agents with
+a different mention syntax, set `format`: it receives the absolute file path
+and the selected line range (`from`/`to`, both `nil` outside Visual mode)
+and returns the mention string. For example, GitHub Copilot CLI
+(cwd-relative path, `:N-M` range):
+
+```lua
+require('mention').setup({
+  format = function(path, from, to)
+    path = vim.fn.fnamemodify(path, ':.')
+    return '@' .. path .. (from and (':' .. from .. '-' .. to) or '')
+  end,
 })
 ```
 
