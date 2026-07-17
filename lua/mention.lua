@@ -39,6 +39,40 @@ Mention.append = function()
   H.notify(mention, 'INFO')
 end
 
+--- Toggle the collection window
+---
+--- Opens the collection in a centered float (geometry per `config.window`,
+--- minimum 40x10) with the cursor on the last line, or closes it if open.
+Mention.toggle = function()
+  if H.float_is_open() then return H.float_close(true) end
+  H.float_open()
+end
+
+--- Copy the entire collection to the system clipboard
+---
+--- Puts the collection verbatim into the `+` register (linewise). Leaves the
+--- collection window untouched.
+Mention.copy = function()
+  local buf_id = H.ensure_collection_buf()
+  local lines = vim.api.nvim_buf_get_lines(buf_id, 0, -1, true)
+  vim.fn.setreg('+', lines, 'l')
+  H.notify(('copied collection (%d lines)'):format(#lines), 'INFO')
+end
+
+--- Clear the collection
+---
+--- Empties the collection buffer after confirmation (defaults to No) and
+--- persists the empty state. Never deletes the buffer or its file; the
+--- collection window stays open if open.
+Mention.clear = function()
+  if vim.fn.confirm('Clear mention collection?', '&Yes\n&No', 2) ~= 1 then return end
+
+  local buf_id = H.ensure_collection_buf()
+  vim.api.nvim_buf_set_lines(buf_id, 0, -1, true, {})
+  H.collection_save(buf_id)
+  H.notify('collection cleared', 'INFO')
+end
+
 --- Module config
 ---
 --- Default values:
@@ -147,6 +181,12 @@ H.ensure_collection_buf = function()
     { group = group, buffer = buf_id, callback = swapoff, desc = 'Keep mention collection swapless' }
   )
 
+  -- The one built-in key: buffer-local `q` closes the float (sacrifices
+  -- macro recording in this buffer)
+  vim.keymap.set('n', 'q', function()
+    if H.float_is_open() then H.float_close(true) end
+  end, { buffer = buf_id, nowait = true, desc = 'Close mention collection' })
+
   local save = function() H.collection_save(buf_id) end
   vim.api.nvim_create_autocmd(
     { 'TextChanged', 'InsertLeave', 'BufLeave' },
@@ -159,6 +199,49 @@ H.ensure_collection_buf = function()
 
   H.cache.buf_id = buf_id
   return buf_id
+end
+
+-- Float window ---------------------------------------------------------------
+H.float_is_open = function()
+  return H.cache.win_id ~= nil and vim.api.nvim_win_is_valid(H.cache.win_id)
+end
+
+H.float_close = function(refocus)
+  local win_id, prev_win = H.cache.win_id, H.cache.prev_win
+  H.cache.win_id = nil
+  if win_id == nil or not vim.api.nvim_win_is_valid(win_id) then return end
+  vim.api.nvim_win_close(win_id, false)
+  if refocus and prev_win ~= nil and vim.api.nvim_win_is_valid(prev_win) then
+    vim.api.nvim_set_current_win(prev_win)
+  end
+end
+
+H.float_open = function()
+  local buf_id = H.ensure_collection_buf()
+  H.cache.prev_win = vim.api.nvim_get_current_win()
+
+  local width = math.max(40, math.floor(vim.o.columns * Mention.config.window.width))
+  local height = math.max(10, math.floor(vim.o.lines * Mention.config.window.height))
+  H.cache.win_id = vim.api.nvim_open_win(buf_id, true, {
+    relative = 'editor',
+    width = width,
+    height = height,
+    col = math.floor((vim.o.columns - width) / 2),
+    row = math.floor((vim.o.lines - height) / 2) - 1,
+    border = Mention.config.window.border,
+    title = ' \u{f1fa} mention.nvim ', -- nf-fa-at + plugin name
+  })
+  vim.api.nvim_win_set_cursor(H.cache.win_id, { vim.api.nvim_buf_line_count(buf_id), 0 })
+
+  -- Focus-leave auto-close. Scheduled: closing a window during WinLeave is
+  -- forbidden. No refocus - the user already went somewhere.
+  vim.api.nvim_create_autocmd('WinLeave', {
+    group = vim.api.nvim_create_augroup('Mention', { clear = false }),
+    buffer = buf_id,
+    once = true,
+    callback = function() vim.schedule(function() H.float_close(false) end) end,
+    desc = 'Auto-close mention collection float',
+  })
 end
 
 H.collection_save = function(buf_id)
