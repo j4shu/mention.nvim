@@ -152,7 +152,7 @@ T['append()']['notifies with the appended mention'] = function()
   child.lua('Mention.append()')
 
   local info = child.lua_get('vim.log.levels.INFO')
-  eq(child.lua_get('_G.notify_log'), { { '(mention) @' .. child.fn.fnamemodify(path, ':p:~'), info } })
+  eq(child.lua_get('_G.notify_log'), { { '(mention.nvim) @' .. child.fn.fnamemodify(path, ':p:~'), info } })
 end
 
 T['append()']['respects `config.silent`'] = function()
@@ -172,7 +172,7 @@ T['append()']['errors on a buffer without a name'] = function()
   child.lua('Mention.append()')
 
   local err = child.lua_get('vim.log.levels.ERROR')
-  eq(child.lua_get('_G.notify_log'), { { '(mention) cannot append: buffer has no name', err } })
+  eq(child.lua_get('_G.notify_log'), { { '(mention.nvim) cannot append: buffer has no name', err } })
   eq(#state_files(), 0)
 end
 
@@ -330,7 +330,7 @@ T['copy()']['copies the whole collection to `+` linewise and notifies'] = functi
   eq(child.lua_get('_G.clip.lines'), { mention, '', mention .. '#L2-3', '', '' })
   eq(child.lua_get('_G.clip.regtype'), 'V')
   local info = child.lua_get('vim.log.levels.INFO')
-  eq(child.lua_get('_G.notify_log'), { { '(mention) copied collection (4 lines)', info } })
+  eq(child.lua_get('_G.notify_log'), { { '(mention.nvim) copied collection (4 lines)', info } })
 end
 
 T['copy()']['never closes the float'] = function()
@@ -380,7 +380,7 @@ T['clear()']['empties on Yes but never deletes; float stays open'] = function()
   eq(vim.fn.readfile(state_files()[1]), {})
   eq(child.api.nvim_get_current_win(), float_win)
   local info = child.lua_get('vim.log.levels.INFO')
-  eq(child.lua_get('_G.notify_log'), { { '(mention) collection cleared', info } })
+  eq(child.lua_get('_G.notify_log'), { { '(mention.nvim) collection cleared', info } })
 end
 
 T['full flow'] = new_set({ hooks = { pre_case = setup_sandbox } })

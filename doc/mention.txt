@@ -25,8 +25,8 @@ instructions between them. There is exactly one collection per project
 (keyed by the working directory) and it persists across sessions (see
 |mention-storage|).
 
-Feedback uses |vim.notify()| with a `(mention) ` prefix. Errors are always
-shown; set `config.silent` to `true` to suppress the rest.
+Feedback uses |vim.notify()| with a `(mention.nvim) ` prefix. Errors are
+always shown; set `config.silent` to `true` to suppress the rest.
 
 ==============================================================================
                                                              *Mention.setup()*
