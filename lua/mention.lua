@@ -230,6 +230,7 @@ H.float_open = function()
     row = math.floor((vim.o.lines - height) / 2) - 1,
     border = Mention.config.window.border,
     title = ' \u{f1fa} mention.nvim ', -- nf-fa-at + plugin name
+    title_pos = 'center',
   })
   vim.api.nvim_win_set_cursor(H.cache.win_id, { vim.api.nvim_buf_line_count(buf_id), 0 })
 
