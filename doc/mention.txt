@@ -8,8 +8,6 @@ Table of contents                                           *mention-contents*
   Config .................................................. |Mention.config|
   Append ................................................ |Mention.append()|
   Toggle ................................................ |Mention.toggle()|
-  Copy .................................................... |Mention.copy()|
-  Clear .................................................. |Mention.clear()|
   Mappings .............................................. |mention-mappings|
   Storage ................................................ |mention-storage|
 
@@ -17,8 +15,9 @@ Table of contents                                           *mention-contents*
 Overview                                                        *mention.nvim*
 
 Append file/line-range mentions (`@path`, `@path#L1-5`) to a single
-collection buffer, interleave free-text instructions, and copy the whole
-collection to the system clipboard for pasting into Claude Code.
+collection buffer and interleave free-text instructions for pasting into
+Claude Code. The collection is a plain file: open it and take its content
+from there.
 
 The collection is a regular buffer: edit it freely, reorder mentions, type
 instructions between them. There is exactly one collection per project
@@ -59,12 +58,6 @@ Mention.config
 
         -- Toggle the collection window
         toggle = '',
-
-        -- Copy entire collection to system clipboard
-        copy = '',
-
-        -- Clear the collection (asks for confirmation)
-        clear = '',
       },
 
       -- Collection window geometry (fractions of the editor size)
@@ -79,15 +72,15 @@ Mention.config
     }
 <
   `config.mappings` holds the left-hand side of each operation's keymap.
-  `append` is mapped in Normal and Visual mode; the rest in Normal mode
+  `append` is mapped in Normal and Visual mode; `toggle` in Normal mode
   only. An empty string creates no mapping.
 
   `config.window` sets the float geometry as fractions of the editor size,
   with a hardcoded minimum of 40x10 cells. `border` accepts any
   |nvim_open_win()| border value.
 
-  `config.silent` set to `true` suppresses INFO notifications (append,
-  copy, clear). Errors and the clear confirmation are never suppressed.
+  `config.silent` set to `true` suppresses INFO notifications (append).
+  Errors are never suppressed.
 
 ==============================================================================
                                                             *Mention.append()*
@@ -118,35 +111,17 @@ Mention.toggle()
   leaves the window.
 
 ==============================================================================
-                                                              *Mention.copy()*
-Mention.copy()
-
-  Copy the entire collection verbatim into the `+` register (linewise),
-  ready to paste into Claude. Leaves the collection window untouched and
-  notifies with the copied line count.
-
-==============================================================================
-                                                             *Mention.clear()*
-Mention.clear()
-
-  Empty the collection after confirmation (defaults to No) and persist the
-  empty state. Never deletes the buffer or its file; the collection window
-  stays open if open.
-
-==============================================================================
 Mappings                                                    *mention-mappings*
 
 No keymaps are created by default. The only built-in key is a buffer-local
 `q` in the collection buffer that closes the float.
 
-Bind the four operations through `config.mappings`, for example:
+Bind the two operations through `config.mappings`, for example:
 >lua
     require('mention').setup({
       mappings = {
         append = '<leader>a',
         toggle = '<leader>A',
-        copy = '<leader>y',
-        clear = '<leader>X',
       },
     })
 <
@@ -159,7 +134,6 @@ where `<cwd>` is the working directory at first use, encoded like
 session; each project directory gets its own collection across sessions.
 
 The buffer autosaves (on leaving the buffer and on quitting Neovim) and
-keeps 'swapfile' off. |Mention.clear()|
-empties the file but never deletes it.
+keeps 'swapfile' off. The plugin never deletes the file.
 
  vim:tw=78:ts=8:noet:ft=help:norl:

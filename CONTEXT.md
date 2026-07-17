@@ -24,6 +24,4 @@ _Avoid_: open/show (as separate concepts)
 User-typed instructions interleaved between mentions. Opaque to the plugin: never parsed, validated, or touched.
 _Avoid_: notes, comments, annotations
 
-**Copy-all**:
-Copying the entire collection verbatim to the system clipboard. The sole exit path for collected content.
-_Avoid_: export, yank, send
+The exit path for collected content is the collection file itself: open it and copy or clean it up like any buffer. The plugin offers no copy or clear operation.
