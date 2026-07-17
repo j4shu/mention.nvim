@@ -32,6 +32,20 @@ local mock_notify = function()
   ]])
 end
 
+-- Headless Neovim has no clipboard provider; capture `+` writes in the child
+local mock_clipboard = function()
+  child.lua([[
+    _G.clip = {}
+    local copy = function(lines, regtype) _G.clip = { lines = lines, regtype = regtype } end
+    local paste = function() return _G.clip.lines or {} end
+    vim.g.clipboard = {
+      name = 'test',
+      copy = { ['+'] = copy, ['*'] = copy },
+      paste = { ['+'] = paste, ['*'] = paste },
+    }
+  ]])
+end
+
 -- Path of the persisted collection: single file under the state subdirectory
 local state_files = function()
   local dir = child.lua_get([[vim.fn.stdpath('state')]]) .. '/mention.nvim'
@@ -205,6 +219,194 @@ T['append()']['autosaves edits made in the collection buffer'] = function()
   -- Normal-mode edit; TextChanged triggers the autosave
   child.type_keys('dd')
   eq(vim.fn.readfile(state_file)[3], nil)
+end
+
+T['toggle()'] = new_set({ hooks = { pre_case = setup_sandbox } })
+
+T['toggle()']['opens a centered float showing the collection'] = function()
+  child.o.columns, child.o.lines = 100, 30
+  edit_test_file()
+  child.lua('Mention.append()')
+  child.lua('Mention.toggle()')
+
+  local cfg = child.api.nvim_win_get_config(child.api.nvim_get_current_win())
+  eq(cfg.relative, 'editor')
+  eq({ cfg.width, cfg.height }, { 50, 18 })
+  eq({ cfg.col, cfg.row }, { 25, 5 })
+  eq(cfg.border[1], '╭')
+  eq(cfg.title[1][1], ' mention collection ')
+  -- Resolve: macOS buffer names resolve the /var -> /private/var symlink
+  eq(child.api.nvim_buf_get_name(0), vim.fn.resolve(state_files()[1]))
+end
+
+T['toggle()']['clamps the float to a 40x10 minimum'] = function()
+  child.o.columns, child.o.lines = 60, 12
+  edit_test_file()
+  child.lua('Mention.toggle()')
+
+  local cfg = child.api.nvim_win_get_config(child.api.nvim_get_current_win())
+  eq({ cfg.width, cfg.height }, { 40, 10 })
+end
+
+T['toggle()']['respects `config.window`'] = function()
+  child.o.columns, child.o.lines = 100, 30
+  child.lua([[Mention.setup({ window = { width = 0.8, height = 0.5, border = 'single' } })]])
+  edit_test_file()
+  child.lua('Mention.toggle()')
+
+  local cfg = child.api.nvim_win_get_config(child.api.nvim_get_current_win())
+  eq({ cfg.width, cfg.height }, { 80, 15 })
+  eq(cfg.border[1], '┌')
+end
+
+T['toggle()']['closes the float on second toggle and returns focus'] = function()
+  edit_test_file()
+  local prev_win = child.api.nvim_get_current_win()
+  child.lua('Mention.toggle()')
+  local float_win = child.api.nvim_get_current_win()
+  expect.no_equality(float_win, prev_win)
+
+  child.lua('Mention.toggle()')
+  eq(child.api.nvim_win_is_valid(float_win), false)
+  eq(child.api.nvim_get_current_win(), prev_win)
+end
+
+T['toggle()']['opens with the cursor on the last line in Normal mode'] = function()
+  edit_test_file()
+  child.lua('Mention.append()')
+  child.type_keys('2G', 'V')
+  child.lua('Mention.append()')
+  child.type_keys('<Esc>')
+  child.lua('Mention.toggle()')
+
+  -- Collection: mention, blank, range mention, blank
+  eq(child.api.nvim_buf_line_count(0), 4)
+  eq(child.api.nvim_win_get_cursor(0), { 4, 0 })
+  eq(child.fn.mode(), 'n')
+end
+
+T['toggle()']['closes the float on buffer-local `q`'] = function()
+  edit_test_file()
+  local prev_win = child.api.nvim_get_current_win()
+  child.lua('Mention.toggle()')
+  local float_win = child.api.nvim_get_current_win()
+
+  child.type_keys('q')
+  -- Guard first: unmapped `q` blocks the child waiting for a macro register
+  eq(child.is_blocked(), false)
+  eq(child.api.nvim_win_is_valid(float_win), false)
+  eq(child.api.nvim_get_current_win(), prev_win)
+  -- `q` stays ordinary (macro recording) outside the collection buffer
+  eq(child.fn.maparg('q', 'n'), '')
+end
+
+T['toggle()']['auto-closes when focus leaves the float'] = function()
+  edit_test_file()
+  local prev_win = child.api.nvim_get_current_win()
+  child.lua('Mention.toggle()')
+  local float_win = child.api.nvim_get_current_win()
+
+  child.api.nvim_set_current_win(prev_win)
+  -- Close may be scheduled; let the child's loop settle
+  child.lua(('vim.wait(200, function() return not vim.api.nvim_win_is_valid(%d) end, 10)'):format(float_win))
+  eq(child.api.nvim_win_is_valid(float_win), false)
+  eq(child.api.nvim_get_current_win(), prev_win)
+end
+
+T['copy()'] = new_set({ hooks = { pre_case = setup_sandbox } })
+
+T['copy()']['copies the whole collection to `+` linewise and notifies'] = function()
+  local path = edit_test_file()
+  child.lua('Mention.append()')
+  child.type_keys('2G', 'V', 'j')
+  child.lua('Mention.append()')
+  child.type_keys('<Esc>')
+  mock_clipboard()
+  mock_notify()
+  child.lua('Mention.copy()')
+
+  local mention = '@' .. child.fn.fnamemodify(path, ':p:~')
+  -- Linewise: the provider gets each line plus a trailing '' (final newline)
+  eq(child.lua_get('_G.clip.lines'), { mention, '', mention .. '#L2-3', '', '' })
+  eq(child.lua_get('_G.clip.regtype'), 'V')
+  local info = child.lua_get('vim.log.levels.INFO')
+  eq(child.lua_get('_G.notify_log'), { { '(mention) copied collection (4 lines)', info } })
+end
+
+T['copy()']['never closes the float'] = function()
+  edit_test_file()
+  child.lua('Mention.append()')
+  mock_clipboard()
+  child.lua('Mention.toggle()')
+  local float_win = child.api.nvim_get_current_win()
+
+  child.lua('Mention.copy()')
+  eq(child.api.nvim_get_current_win(), float_win)
+  eq(child.api.nvim_win_is_valid(float_win), true)
+end
+
+T['clear()'] = new_set({ hooks = { pre_case = setup_sandbox } })
+
+-- Capture the guard and answer with `button` (0 = dialog dismissed)
+local mock_confirm = function(button)
+  child.lua(('vim.fn.confirm = function(...) _G.confirm_args = { ... }; return %d end'):format(button))
+end
+
+T['clear()']['is confirm-guarded, defaulting to No'] = function()
+  local path = edit_test_file()
+  child.lua('Mention.append()')
+  mock_notify()
+  mock_confirm(2)
+  child.lua('Mention.clear()')
+
+  eq(child.lua_get('_G.confirm_args'), { 'Clear mention collection?', '&Yes\n&No', 2 })
+  -- Declined: collection untouched, nothing notified
+  eq(vim.fn.readfile(state_files()[1]), { '@' .. child.fn.fnamemodify(path, ':p:~'), '' })
+  eq(child.lua_get('_G.notify_log'), {})
+end
+
+T['clear()']['empties on Yes but never deletes; float stays open'] = function()
+  edit_test_file()
+  child.lua('Mention.append()')
+  mock_notify()
+  mock_confirm(1)
+  child.lua('Mention.toggle()')
+  local float_win = child.api.nvim_get_current_win()
+  child.lua('Mention.clear()')
+
+  -- Emptied and persisted; buffer, state file and float all survive
+  eq(child.api.nvim_buf_get_lines(0, 0, -1, true), { '' })
+  eq(#state_files(), 1)
+  eq(vim.fn.readfile(state_files()[1]), {})
+  eq(child.api.nvim_get_current_win(), float_win)
+  local info = child.lua_get('vim.log.levels.INFO')
+  eq(child.lua_get('_G.notify_log'), { { '(mention) collection cleared', info } })
+end
+
+T['full flow'] = new_set({ hooks = { pre_case = setup_sandbox } })
+
+T['full flow']['append, toggle, edit free text, copy, clear'] = function()
+  local path = edit_test_file()
+  mock_clipboard()
+  mock_confirm(1)
+  child.lua('Mention.append()')
+
+  -- Interleave an instruction below the mention, inside the float
+  child.lua('Mention.toggle()')
+  child.type_keys('i', 'refactor this', '<Esc>')
+  local mention = '@' .. child.fn.fnamemodify(path, ':p:~')
+  eq(vim.fn.readfile(state_files()[1]), { mention, 'refactor this' })
+
+  child.lua('Mention.copy()')
+  eq(child.lua_get('_G.clip.lines'), { mention, 'refactor this', '' })
+
+  child.lua('Mention.clear()')
+  eq(vim.fn.readfile(state_files()[1]), {})
+  -- Collection stays usable after clearing
+  child.lua('Mention.toggle()')
+  child.cmd('edit ' .. child.fn.fnameescape(path))
+  child.lua('Mention.append()')
+  eq(vim.fn.readfile(state_files()[1]), { mention, '' })
 end
 
 T['append()']['persists unsaved collection changes on quit'] = function()
