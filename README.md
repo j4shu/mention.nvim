@@ -56,10 +56,7 @@ require('mention').setup({
     append = '<leader>y',
     toggle = '<leader>m',
     close = '<Esc>'
-  },
-  window = {
-    border = 'single'
-  },
+  }
 })
 ```
 
