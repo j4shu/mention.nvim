@@ -185,8 +185,8 @@ T['append()']['keys the collection by cwd at first use, unaffected by later `:cd
 
   local files = state_files()
   eq(#files, 1)
-  -- Filename is the keying cwd, undofile-style encoded
-  eq(vim.fn.fnamemodify(files[1], ':t'):find('%%proj$') ~= nil, true)
+  -- Filename is the keying cwd, undofile-style encoded, with `.md` extension
+  eq(vim.fn.fnamemodify(files[1], ':t'):find('%%proj%.md$') ~= nil, true)
   local mention = '@' .. child.fn.fnamemodify(path, ':p:~')
   eq(vim.fn.readfile(files[1]), { mention, '', mention, '' })
 end
@@ -237,6 +237,12 @@ T['toggle()']['opens a centered float showing the collection'] = function()
   eq(cfg.title[1][1], ' \u{f1fa} mention.nvim ')
   -- Resolve: macOS buffer names resolve the /var -> /private/var symlink
   eq(child.api.nvim_buf_get_name(0), vim.fn.resolve(state_files()[1]))
+end
+
+T['toggle()']['gives the collection buffer markdown filetype'] = function()
+  edit_test_file()
+  child.lua('Mention.toggle()')
+  eq(child.bo.filetype, 'markdown')
 end
 
 T['toggle()']['clamps the float to a 40x10 minimum'] = function()
