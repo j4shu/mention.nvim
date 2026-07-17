@@ -187,9 +187,11 @@ H.ensure_collection_buf = function()
     if H.float_is_open() then H.float_close(true) end
   end, { buffer = buf_id, nowait = true, desc = 'Close mention collection' })
 
+  -- Boundary saves suffice: edits happen only in the float and every way out
+  -- of it fires BufLeave; VimLeavePre covers quitting from inside it.
   local save = function() H.collection_save(buf_id) end
   vim.api.nvim_create_autocmd(
-    { 'TextChanged', 'InsertLeave', 'BufLeave' },
+    'BufLeave',
     { group = group, buffer = buf_id, callback = save, desc = 'Autosave mention collection' }
   )
   vim.api.nvim_create_autocmd(
