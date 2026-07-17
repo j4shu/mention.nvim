@@ -1,9 +1,10 @@
 # mention.nvim
 
 Collect file and line-range mentions (`@path`, `@path#L1-5`) into a single
-mention buffer and interleave free-text instructions for pasting into Claude
-Code. One mention buffer per project (keyed by cwd), persisted across sessions
-as a plain file: open it and take its content from there.
+mention buffer and interleave free-text instructions for pasting into a
+coding agent such as Claude Code. One mention buffer per project (keyed by
+cwd), persisted across sessions as a plain file: open it and take its
+content from there.
 
 ## Requirements
 
@@ -26,8 +27,7 @@ require('mention').setup({
   -- Module mappings. Use `''` (empty string) to disable one.
   mappings = {
     -- Append a mention for the current file (Normal) or the selected line
-    -- range (Visual) to the end of the mention buffer. Paths are `~`-absolute,
-    -- which Claude Code expands. You stay where you are.
+    -- range (Visual) to the end of the mention buffer. You stay where you are.
     append = '',
 
     -- Open the mention buffer in a centered float, or close it if open. It

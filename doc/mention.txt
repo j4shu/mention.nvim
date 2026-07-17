@@ -1,4 +1,4 @@
-*mention.txt*  Collect file mentions for pasting into Claude
+*mention.txt*  Collect file mentions for pasting into a coding agent
 
 ==============================================================================
 Table of contents                                           *mention-contents*
@@ -15,8 +15,8 @@ Table of contents                                           *mention-contents*
 Overview                                                        *mention.nvim*
 
 Append file/line-range mentions (`@path`, `@path#L1-5`) to a single
-mention buffer and interleave free-text instructions for pasting into
-Claude Code. The mention buffer is a plain file: open it and take its
+mention buffer and interleave free-text instructions for pasting into a
+coding agent. The mention buffer is a plain file: open it and take its
 content from there.
 
 The mention buffer is a regular buffer: edit it freely, reorder mentions,
@@ -94,8 +94,7 @@ Mention.append()
 
   Mode-aware: in Visual mode appends the file with the selected line range
   (`@path#L<n>` for one line, `@path#L<n>-<m>` for several) and returns to
-  Normal mode, otherwise the whole file (`@path`). Paths are absolute with
-  `~` for home, which Claude Code expands.
+  Normal mode, otherwise the whole file (`@path`).
 
   The mention lands at the end of the mention buffer followed by one blank
   line, and is persisted immediately. The float is not opened: you stay

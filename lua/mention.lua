@@ -1,4 +1,4 @@
---- *mention.nvim* Collect file mentions for pasting into Claude
+--- *mention.nvim* Collect file mentions for pasting into a coding agent
 ---
 --- Append file/line-range mentions (`@path`, `@path#L1-5`) to a single
 --- mention buffer and interleave free-text instructions. The mention buffer
@@ -23,7 +23,7 @@ end
 ---
 --- Mode-aware: in Visual mode appends the current file with the selected line
 --- range (`@path#L<n>` / `@path#L<n>-<m>`) and returns to Normal mode,
---- otherwise the whole file (`@path`). Paths are absolute with `~` for home.
+--- otherwise the whole file (`@path`).
 --- The mention is followed by one blank line, at the end of the mention
 --- buffer, and persisted.
 Mention.append = function()
