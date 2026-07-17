@@ -15,14 +15,14 @@ Table of contents                                           *mention-contents*
 Overview                                                        *mention.nvim*
 
 Append file/line-range mentions (`@path`, `@path#L1-5`) to a single
-collection buffer and interleave free-text instructions for pasting into
-Claude Code. The collection is a plain file: open it and take its content
-from there.
+mention buffer and interleave free-text instructions for pasting into
+Claude Code. The mention buffer is a plain file: open it and take its
+content from there.
 
-The collection is a regular buffer: edit it freely, reorder mentions, type
-instructions between them. There is exactly one collection per project
-(keyed by the working directory) and it persists across sessions (see
-|mention-storage|).
+The mention buffer is a regular buffer: edit it freely, reorder mentions,
+type instructions between them. There is exactly one mention buffer per
+project (keyed by the working directory) and it persists across sessions
+(see |mention-storage|).
 
 Feedback uses |vim.notify()| with a `(mention.nvim) ` prefix. Errors are
 always shown; set `config.silent` to `true` to suppress the rest.
@@ -56,14 +56,14 @@ Mention.config
         -- Append mention for current file (Normal) or line range (Visual)
         append = '',
 
-        -- Toggle the collection window
+        -- Toggle the mention buffer
         toggle = '',
 
-        -- Close the collection window (buffer-local in the collection buffer)
+        -- Close the float (buffer-local in the mention buffer)
         close = 'q',
       },
 
-      -- Collection window geometry (fractions of the editor size)
+      -- Float geometry (fractions of the editor size)
       window = {
         width = 0.5,
         height = 0.6,
@@ -76,7 +76,7 @@ Mention.config
 <
   `config.mappings` holds the left-hand side of each operation's keymap.
   `append` is mapped in Normal and Visual mode; `toggle` in Normal mode
-  only. `close` is buffer-local to the collection buffer (the default `q`
+  only. `close` is buffer-local to the mention buffer (the default `q`
   sacrifices macro recording there). An empty string creates no mapping.
 
   `config.window` sets the float geometry as fractions of the editor size,
@@ -90,16 +90,16 @@ Mention.config
                                                             *Mention.append()*
 Mention.append()
 
-  Append a mention for the current file to the collection.
+  Append a mention for the current file to the mention buffer.
 
   Mode-aware: in Visual mode appends the file with the selected line range
   (`@path#L<n>` for one line, `@path#L<n>-<m>` for several) and returns to
   Normal mode, otherwise the whole file (`@path`). Paths are absolute with
   `~` for home, which Claude Code expands.
 
-  The mention lands at the end of the collection followed by one blank
-  line, and is persisted immediately. The collection window is not opened:
-  you stay where you are, and a notification shows the appended mention.
+  The mention lands at the end of the mention buffer followed by one blank
+  line, and is persisted immediately. The float is not opened: you stay
+  where you are, and a notification shows the appended mention.
 
   Appending from an unnamed buffer is an error.
 
@@ -107,7 +107,7 @@ Mention.append()
                                                             *Mention.toggle()*
 Mention.toggle()
 
-  Open the collection in a centered float, or close it if open.
+  Open the mention buffer in a centered float, or close it if open.
 
   The float's geometry comes from `config.window` (minimum 40x10) and the
   cursor starts on the last line in Normal mode. It closes via this
@@ -118,7 +118,7 @@ Mention.toggle()
 Mappings                                                    *mention-mappings*
 
 No global keymaps are created by default. The only built-in key is a
-buffer-local close mapping in the collection buffer (default `q`),
+buffer-local close mapping in the mention buffer (default `q`),
 configurable via `mappings.close`.
 
 Bind the operations through `config.mappings`, for example:
@@ -134,10 +134,10 @@ Bind the operations through `config.mappings`, for example:
 ==============================================================================
 Storage                                                      *mention-storage*
 
-The collection is a real file at `stdpath('state')/mention.nvim/<cwd>`,
+The mention buffer is a real file at `stdpath('state')/mention.nvim/<cwd>`,
 where `<cwd>` is the working directory at first use, encoded like
-'undofile' names. Later |:cd| does not move the collection within the
-session; each project directory gets its own collection across sessions.
+'undofile' names. Later |:cd| does not move the mention buffer within the
+session; each project directory gets its own mention buffer across sessions.
 
 The buffer autosaves (on leaving the buffer and on quitting Neovim) and
 keeps 'swapfile' off. The plugin never deletes the file.
