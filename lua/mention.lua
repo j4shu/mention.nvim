@@ -135,10 +135,17 @@ H.ensure_collection_buf = function()
 
   local buf_id = vim.fn.bufadd(H.state_path())
   vim.fn.bufload(buf_id)
-  -- Autosave makes swap files redundant (and their recovery prompts ugly)
-  vim.bo[buf_id].swapfile = false
 
   local group = vim.api.nvim_create_augroup('Mention', {})
+  -- Autosave makes swap files redundant (and their recovery prompts ugly).
+  -- Re-apply on every read: `:edit` can reset buffer-local options.
+  local swapoff = function() vim.bo[buf_id].swapfile = false end
+  swapoff()
+  vim.api.nvim_create_autocmd(
+    'BufReadPost',
+    { group = group, buffer = buf_id, callback = swapoff, desc = 'Keep mention collection swapless' }
+  )
+
   local save = function() H.collection_save(buf_id) end
   vim.api.nvim_create_autocmd(
     { 'TextChanged', 'InsertLeave', 'BufLeave' },
