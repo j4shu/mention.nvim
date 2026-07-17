@@ -96,9 +96,9 @@ Mention.append()
   Append a mention for the current file to the collection.
 
   Mode-aware: in Visual mode appends the file with the selected line range
-  (`@path#L<n>` for one line, `@path#L<n>-<m>` for several), otherwise the
-  whole file (`@path`). Paths are absolute with `~` for home, which Claude
-  Code expands.
+  (`@path#L<n>` for one line, `@path#L<n>-<m>` for several) and returns to
+  Normal mode, otherwise the whole file (`@path`). Paths are absolute with
+  `~` for home, which Claude Code expands.
 
   The mention lands at the end of the collection followed by one blank
   line, and is persisted immediately. The collection window is not opened:
