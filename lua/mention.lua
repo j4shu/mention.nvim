@@ -63,6 +63,9 @@ Mention.config = {
 
     -- Toggle the collection window
     toggle = '',
+
+    -- Close the collection window (buffer-local in the collection buffer)
+    close = 'q',
   },
 
   -- Collection window geometry (fractions of the editor size)
@@ -92,6 +95,7 @@ H.setup_config = function(config)
   H.check_type('mappings', config.mappings, 'table')
   H.check_type('mappings.append', config.mappings.append, 'string')
   H.check_type('mappings.toggle', config.mappings.toggle, 'string')
+  H.check_type('mappings.close', config.mappings.close, 'string')
 
   H.check_type('window', config.window, 'table')
   H.check_type('window.width', config.window.width, 'number')
@@ -150,9 +154,9 @@ H.ensure_collection_buf = function()
     { group = group, buffer = buf_id, callback = swapoff, desc = 'Keep mention collection swapless' }
   )
 
-  -- The one built-in key: buffer-local `q` closes the float (sacrifices
-  -- macro recording in this buffer)
-  vim.keymap.set('n', 'q', function()
+  -- Buffer-local close key (the default `q` sacrifices macro recording in
+  -- this buffer); `nowait` beats non-buffer mappings sharing the prefix
+  H.map('n', Mention.config.mappings.close, function()
     if H.float_is_open() then H.float_close(true) end
   end, { buffer = buf_id, nowait = true, desc = 'Close mention collection' })
 

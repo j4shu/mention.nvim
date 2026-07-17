@@ -58,6 +58,9 @@ Mention.config
 
         -- Toggle the collection window
         toggle = '',
+
+        -- Close the collection window (buffer-local in the collection buffer)
+        close = 'q',
       },
 
       -- Collection window geometry (fractions of the editor size)
@@ -73,7 +76,8 @@ Mention.config
 <
   `config.mappings` holds the left-hand side of each operation's keymap.
   `append` is mapped in Normal and Visual mode; `toggle` in Normal mode
-  only. An empty string creates no mapping.
+  only. `close` is buffer-local to the collection buffer (the default `q`
+  sacrifices macro recording there). An empty string creates no mapping.
 
   `config.window` sets the float geometry as fractions of the editor size,
   with a hardcoded minimum of 40x10 cells. `border` accepts any
@@ -107,21 +111,23 @@ Mention.toggle()
 
   The float's geometry comes from `config.window` (minimum 40x10) and the
   cursor starts on the last line in Normal mode. It closes via this
-  function, the buffer-local `q` mapping, or automatically when focus
-  leaves the window.
+  function, the buffer-local close mapping (`mappings.close`, default `q`),
+  or automatically when focus leaves the window.
 
 ==============================================================================
 Mappings                                                    *mention-mappings*
 
-No keymaps are created by default. The only built-in key is a buffer-local
-`q` in the collection buffer that closes the float.
+No global keymaps are created by default. The only built-in key is a
+buffer-local close mapping in the collection buffer (default `q`),
+configurable via `mappings.close`.
 
-Bind the two operations through `config.mappings`, for example:
+Bind the operations through `config.mappings`, for example:
 >lua
     require('mention').setup({
       mappings = {
         append = '<leader>a',
         toggle = '<leader>A',
+        close = '<Esc>',
       },
     })
 <
