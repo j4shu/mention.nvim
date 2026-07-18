@@ -73,6 +73,7 @@ end
 T['setup()']['validates config'] = function()
   expect.error(function() child.lua([[Mention.setup({ silent = 'yes' })]]) end, '`silent`.*boolean')
   expect.error(function() child.lua([[Mention.setup({ mappings = { append = 1 } })]]) end, '`mappings%.append`.*string')
+  expect.error(function() child.lua([[Mention.setup({ format = 'copilot' })]]) end, '`format`.*callable')
 end
 
 T['setup()']['creates configured mappings'] = function()
@@ -120,6 +121,51 @@ T['append()']['normalizes a reversed Visual selection'] = function()
   child.lua('Mention.append()')
 
   eq(vim.fn.readfile(state_files()[1]), { '@' .. child.fn.fnamemodify(path, ':p:~') .. '#L2-4', '' })
+end
+
+T['append()']['formats via `config.format` with absolute path and Visual range'] = function()
+  local path = edit_test_file()
+  child.lua([[Mention.setup({
+    format = function(path, from, to)
+      _G.format_args = { path, from, to }
+      return vim.fn.fnamemodify(path, ':.') .. ':' .. from .. '-' .. to
+    end,
+  })]])
+  child.type_keys('2G', 'V', '2j')
+  child.lua('Mention.append()')
+
+  eq(child.lua_get('_G.format_args'), { child.fn.fnamemodify(path, ':p'), 2, 4 })
+  eq(vim.fn.readfile(state_files()[1]), { 'file.txt:2-4', '' })
+end
+
+T['append()']['passes no range to `config.format` outside Visual mode'] = function()
+  local path = edit_test_file()
+  child.lua([[Mention.setup({
+    format = function(path, from, to)
+      _G.format_args = { path = path, from = from, to = to }
+      return 'whole file'
+    end,
+  })]])
+  child.lua('Mention.append()')
+
+  eq(child.lua_get('_G.format_args'), { path = child.fn.fnamemodify(path, ':p') })
+  eq(vim.fn.readfile(state_files()[1]), { 'whole file', '' })
+end
+
+T['append()']['splits a multi-line `config.format` result into lines'] = function()
+  edit_test_file()
+  child.lua([[Mention.setup({ format = function() return 'first\nsecond' end })]])
+  child.lua('Mention.append()')
+
+  eq(vim.fn.readfile(state_files()[1]), { 'first', 'second', '' })
+end
+
+T['append()']['errors when `config.format` does not return a string'] = function()
+  edit_test_file()
+  child.lua([[Mention.setup({ format = function() end })]])
+
+  expect.error(function() child.lua('Mention.append()') end, '%(mention%.nvim%) `format`.*string, not nil')
+  eq(state_files(), {})
 end
 
 T['append()']['returns to Normal mode after a Visual append'] = function()

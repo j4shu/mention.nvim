@@ -70,6 +70,10 @@ Mention.config
         border = nil, -- Defaults to `vim.o.winborder`
       },
 
+      -- Mention format: `function(path, from, to) -> string`, or `nil` for
+      -- the default `@path#L<from>-<to>`. See the field notes below.
+      format = nil,
+
       -- Whether to suppress non-error feedback
       silent = false,
     }
@@ -84,6 +88,26 @@ Mention.config
   |nvim_open_win()| border string. When unset, the float follows the
   'winborder' option, or uses 'rounded' if that is empty.
 
+  `config.format` renders each mention: |Mention.append()| calls
+  `format(path, from, to)` and appends the returned string (newlines split
+  into separate lines). `path` is the absolute path of the current file;
+  `from`/`to` are the selected line range in Visual mode (`from <= to`,
+  equal for a single line) and both `nil` otherwise. `nil` uses the default
+  format, equivalent to: >lua
+    format = function(path, from, to)
+      path = vim.fn.fnamemodify(path, ':~')
+      if not from then return '@' .. path end
+      local range = from == to and from or (from .. '-' .. to)
+      return '@' .. path .. '#L' .. range
+    end
+<
+  Reshape it for agents with a different mention syntax, for example
+  GitHub Copilot CLI (cwd-relative path, `:N-M` line range): >lua
+    format = function(path, from, to)
+      path = vim.fn.fnamemodify(path, ':.')
+      return '@' .. path .. (from and (':' .. from .. '-' .. to) or '')
+    end
+<
   `config.silent` set to `true` suppresses INFO notifications (append).
   Errors are never suppressed.
 
@@ -94,8 +118,9 @@ Mention.append()
   Append a mention for the current file to the mention buffer.
 
   Mode-aware: in Visual mode appends the file with the selected line range
-  (`@path#L<n>` for one line, `@path#L<n>-<m>` for several) and returns to
-  Normal mode, otherwise the whole file (`@path`).
+  (default `@path#L<n>` for one line, `@path#L<n>-<m>` for several) and
+  returns to Normal mode, otherwise the whole file (default `@path`). The
+  mention is rendered by `config.format` (see |Mention.config|).
 
   The mention lands at the end of the mention buffer followed by one blank
   line, and is persisted immediately. The float is not opened: you stay

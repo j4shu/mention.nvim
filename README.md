@@ -43,6 +43,10 @@ require('mention').setup({
     border = nil, -- Defaults to `vim.o.winborder`
   },
 
+  -- Mention format: `function(path, from, to) -> string`, or `nil` for the
+  -- default `@path#L<from>-<to>`. See `:h Mention.config`.
+  format = nil,
+
   -- Whether to suppress non-error feedback
   silent = false,
 })
@@ -57,6 +61,22 @@ require('mention').setup({
     toggle = '<leader>m',
     close = '<Esc>'
   }
+})
+```
+
+## Mention format
+
+You can customize the mention format by providing a `format` function. It
+receives the absolute file path and the selected line range (`from`/`to`,
+both `nil` outside Visual mode) and returns the mention string. For
+example, GitHub Copilot CLI (cwd-relative path, `:N-M` range):
+
+```lua
+require('mention').setup({
+  format = function(path, from, to)
+    path = vim.fn.fnamemodify(path, ':.')
+    return '@' .. path .. (from and (':' .. from .. '-' .. to) or '')
+  end,
 })
 ```
 
