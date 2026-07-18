@@ -10,6 +10,7 @@ Table of contents                                           *mention-contents*
   Toggle ................................................ |Mention.toggle()|
   Mappings .............................................. |mention-mappings|
   Storage ................................................ |mention-storage|
+  Filetype .............................................. |mention-filetype|
 
 ==============================================================================
 Overview                                                        *mention.nvim*
@@ -166,5 +167,14 @@ session; each project directory gets its own mention buffer across sessions.
 
 The buffer autosaves (on leaving the buffer and on quitting Neovim) and
 keeps 'swapfile' off. The plugin never deletes the file.
+
+==============================================================================
+Filetype                                                    *mention-filetype*
+
+The mention buffer has 'filetype' `mention`. This is a stable extension
+point: hook `FileType mention` (or add `ftplugin/mention.lua`) to customize
+the buffer, for example to attach a completion source or set buffer-local
+options. The buffer is intentionally unlisted; a completion engine that
+skips unlisted buffers must be attached explicitly from such a hook.
 
  vim:tw=78:ts=8:noet:ft=help:norl:

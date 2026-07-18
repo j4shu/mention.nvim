@@ -261,6 +261,14 @@ T['append()']['saves mention buffer edits on leaving it'] = function()
   eq(vim.fn.readfile(state_file)[3], 'do the thing')
 end
 
+T['append()']['gives the mention buffer the `mention` filetype'] = function()
+  edit_test_file()
+  child.lua('Mention.append()')
+
+  local buf = child.fn.bufnr(state_files()[1])
+  eq(child.api.nvim_get_option_value('filetype', { buf = buf }), 'mention')
+end
+
 T['toggle()'] = new_set({ hooks = { pre_case = setup_sandbox } })
 
 T['toggle()']['opens a centered float showing the mention buffer'] = function()
