@@ -66,12 +66,10 @@ require('mention').setup({
 
 ## Mention format
 
-Mentions default to `@` + `~`-abbreviated absolute path + `#L<from>-<to>`
-for a Visual line range, which Claude Code parses natively. For agents with
-a different mention syntax, set `format`: it receives the absolute file path
-and the selected line range (`from`/`to`, both `nil` outside Visual mode)
-and returns the mention string. For example, GitHub Copilot CLI
-(cwd-relative path, `:N-M` range):
+You can customize the mention format by providing a `format` function. It
+receives the absolute file path and the selected line range (`from`/`to`,
+both `nil` outside Visual mode) and returns the mention string. For
+example, GitHub Copilot CLI (cwd-relative path, `:N-M` range):
 
 ```lua
 require('mention').setup({
