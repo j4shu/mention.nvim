@@ -228,6 +228,11 @@ H.float_open = function()
     title = ' \u{f1fa} mention.nvim ', -- nf-fa-at + plugin name
     title_pos = 'center',
   })
+
+  -- Word-wrap long lines (mentions and notes) at word boundaries
+  vim.wo[H.cache.win_id].wrap = true
+  vim.wo[H.cache.win_id].linebreak = true
+
   vim.api.nvim_win_set_cursor(H.cache.win_id, { vim.api.nvim_buf_line_count(buf_id), 0 })
 
   -- Focus-leave auto-close. Scheduled: closing a window during WinLeave is

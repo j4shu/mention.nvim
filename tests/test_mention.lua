@@ -275,6 +275,8 @@ T['toggle()']['opens a centered float showing the mention buffer'] = function()
   eq({ cfg.col, cfg.row }, { 25, 5 })
   eq(cfg.border[1], '╭')
   eq(cfg.title[1][1], ' \u{f1fa} mention.nvim ')
+  eq(child.wo.wrap, true)
+  eq(child.wo.linebreak, true)
   -- Resolve: macOS buffer names resolve the /var -> /private/var symlink
   eq(child.api.nvim_buf_get_name(0), vim.fn.resolve(state_files()[1]))
 end
