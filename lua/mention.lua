@@ -27,7 +27,12 @@ end
 --- by `config.format`.
 --- The mention is followed by one blank line, at the end of the mention
 --- buffer, and persisted.
+--- With `config.auto_open`, the mention buffer float is opened and focused
+--- afterwards (see |Mention.toggle()|).
 Mention.append = function()
+  if H.cache.buf_id ~= nil and vim.api.nvim_get_current_buf() == H.cache.buf_id then
+    return H.notify('cannot add mention buffer to itself', 'ERROR')
+  end
   local path = vim.fn.expand('%:p')
   if path == '' then return H.notify('cannot append: buffer has no name', 'ERROR') end
   local from, to = H.visual_range()
@@ -47,7 +52,13 @@ Mention.append = function()
   vim.api.nvim_buf_set_lines(buf_id, is_empty and 0 or last, last, true, lines)
   H.mention_buf_save(buf_id)
 
-  H.notify(mention, 'INFO')
+  -- With `auto_open` the mention is on screen in the float, so the toast is
+  -- redundant; otherwise report the appended mention (still gated by `silent`).
+  if Mention.config.auto_open then
+    if not H.float_is_open() then H.float_open() end
+  else
+    H.notify(mention, 'INFO')
+  end
 end
 
 --- Toggle the mention buffer
@@ -88,6 +99,9 @@ Mention.config = {
 
   -- Whether to suppress non-error feedback
   silent = false,
+
+  -- Whether to open the mention buffer float (focused) after each append
+  auto_open = false,
 }
 
 -- Helper data ================================================================
@@ -116,6 +130,7 @@ H.setup_config = function(config)
   H.check_type('format', config.format, 'callable', true)
 
   H.check_type('silent', config.silent, 'boolean')
+  H.check_type('auto_open', config.auto_open, 'boolean')
 
   return config
 end

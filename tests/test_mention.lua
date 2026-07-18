@@ -60,11 +60,13 @@ T['setup()']['creates config with defaults'] = function()
   eq(child.lua_get('Mention.config.mappings'), { append = '', toggle = '', close = 'q' })
   eq(child.lua_get('Mention.config.window'), { width = 0.5, height = 0.6 })
   eq(child.lua_get('Mention.config.silent'), false)
+  eq(child.lua_get('Mention.config.auto_open'), false)
 end
 
 T['setup()']['respects user config'] = function()
-  child.lua([[Mention.setup({ silent = true, window = { width = 0.8 } })]])
+  child.lua([[Mention.setup({ silent = true, auto_open = true, window = { width = 0.8 } })]])
   eq(child.lua_get('Mention.config.silent'), true)
+  eq(child.lua_get('Mention.config.auto_open'), true)
   eq(child.lua_get('Mention.config.window.width'), 0.8)
   -- Unspecified fields keep defaults
   eq(child.lua_get('Mention.config.window.height'), 0.6)
@@ -72,6 +74,7 @@ end
 
 T['setup()']['validates config'] = function()
   expect.error(function() child.lua([[Mention.setup({ silent = 'yes' })]]) end, '`silent`.*boolean')
+  expect.error(function() child.lua([[Mention.setup({ auto_open = 'yes' })]]) end, '`auto_open`.*boolean')
   expect.error(function() child.lua([[Mention.setup({ mappings = { append = 1 } })]]) end, '`mappings%.append`.*string')
   expect.error(function() child.lua([[Mention.setup({ format = 'copilot' })]]) end, '`format`.*callable')
 end
@@ -203,6 +206,45 @@ T['append()']['respects `config.silent`'] = function()
 
   eq(child.lua_get('_G.notify_log'), {})
   eq(#state_files(), 1)
+end
+
+T['append()']['opens the focused float and skips the toast with `config.auto_open`'] = function()
+  edit_test_file()
+  mock_notify()
+  child.lua([[Mention.setup({ auto_open = true })]])
+  child.lua('Mention.append()')
+
+  -- Landed in the mention buffer float, in Normal mode
+  local win = child.api.nvim_get_current_win()
+  eq(child.api.nvim_win_get_config(win).relative, 'editor')
+  eq(child.api.nvim_win_get_buf(win), child.fn.bufnr(state_files()[1]))
+  eq(child.fn.mode(), 'n')
+  -- The mention is on screen, so the append toast is suppressed
+  eq(child.lua_get('_G.notify_log'), {})
+end
+
+T['append()']['leaves the user in place without `config.auto_open`'] = function()
+  edit_test_file()
+  local prev_win = child.api.nvim_get_current_win()
+  child.lua('Mention.append()')
+
+  eq(child.api.nvim_get_current_win(), prev_win)
+  eq(child.api.nvim_win_get_config(prev_win).relative, '')
+end
+
+T['append()']['errors when the mention buffer itself is focused'] = function()
+  edit_test_file()
+  child.lua('Mention.append()')
+  local before = vim.fn.readfile(state_files()[1])
+
+  -- Focus the mention buffer, then attempt to append again
+  child.cmd('edit ' .. child.fn.fnameescape(state_files()[1]))
+  mock_notify()
+  child.lua('Mention.append()')
+
+  local err = child.lua_get('vim.log.levels.ERROR')
+  eq(child.lua_get('_G.notify_log'), { { '(mention.nvim) cannot add mention buffer to itself', err } })
+  eq(vim.fn.readfile(state_files()[1]), before)
 end
 
 T['append()']['errors on a buffer without a name'] = function()
