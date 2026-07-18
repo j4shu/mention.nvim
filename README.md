@@ -1,3 +1,5 @@
+<img width="1920" height="1051" alt="SCR-20260717-rvkn" src="https://github.com/user-attachments/assets/1c779b02-8a29-415f-905c-b631b7d6c935" />
+
 # mention.nvim
 
 Collect file and line-range mentions (`@path`, `@path#L1-5`) into a single
