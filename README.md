@@ -51,6 +51,9 @@ require('mention').setup({
 
   -- Whether to suppress non-error feedback
   silent = false,
+
+  -- Whether to open the mention buffer float (focused) after each append
+  auto_open = false,
 })
 ```
 

@@ -13,7 +13,7 @@ The single per-project buffer where mentions and free text accumulate. There is 
 _Avoid_: list, scratchpad, sidebar
 
 **Append**:
-Adding a mention to the end of the mention buffer. Always silent: the user stays where they are.
+Adding a mention to the end of the mention buffer. Silent by default: the user stays where they are. The `auto_open` config is the sole opt-in exception, opening and focusing the mention buffer float after each append.
 _Avoid_: add, capture, send
 
 **Toggle**:

@@ -77,6 +77,9 @@ Mention.config
 
       -- Whether to suppress non-error feedback
       silent = false,
+
+      -- Whether to open the mention buffer float (focused) after each append
+      auto_open = false,
     }
 <
   `config.mappings` holds the left-hand side of each operation's keymap.
@@ -112,6 +115,11 @@ Mention.config
   `config.silent` set to `true` suppresses INFO notifications (append).
   Errors are never suppressed.
 
+  `config.auto_open` set to `true` opens and focuses the mention buffer
+  float after each append (see |Mention.toggle()|), instead of leaving you
+  in place. The append notification is skipped, since the mention is on
+  screen.
+
 ==============================================================================
                                                             *Mention.append()*
 Mention.append()
@@ -124,10 +132,13 @@ Mention.append()
   mention is rendered by `config.format` (see |Mention.config|).
 
   The mention lands at the end of the mention buffer followed by one blank
-  line, and is persisted immediately. The float is not opened: you stay
-  where you are, and a notification shows the appended mention.
+  line, and is persisted immediately. By default the float is not opened:
+  you stay where you are, and a notification shows the appended mention.
+  With `config.auto_open`, the float is opened and focused instead (see
+  |Mention.toggle()|).
 
-  Appending from an unnamed buffer is an error.
+  Appending from an unnamed buffer is an error, as is appending while the
+  mention buffer itself is focused.
 
 ==============================================================================
                                                             *Mention.toggle()*
