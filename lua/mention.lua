@@ -164,6 +164,11 @@ H.ensure_mention_buf = function()
   local buf_id = vim.fn.bufadd(H.state_path())
   vim.fn.bufload(buf_id)
 
+  -- The state file has no extension, so nothing sets a filetype. A fixed
+  -- `mention` filetype is the public extension point (e.g. `FileType mention`
+  -- to attach a completion source); set after `bufload` to beat detection.
+  vim.bo[buf_id].filetype = 'mention'
+
   local group = vim.api.nvim_create_augroup('Mention', {})
   -- Autosave makes swap files redundant (and their recovery prompts ugly).
   -- Re-apply on enter/read: entering a `bufadd()`ed buffer for the first
